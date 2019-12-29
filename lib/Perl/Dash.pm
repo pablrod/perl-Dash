@@ -7,8 +7,16 @@ package Perl::Dash;
 
 # ABSTRACT: Analytical Web Apps in Perl (Port of Plotly's Dash to Perl)
 
+# TODO Enable signatures?
+
 use Mojo::Base 'Mojolicious';
 use JSON;
+use Browser::Open;
+use File::ShareDir;
+# TODO Use Mojo::File (Mojo::Path) instead of Path::Tiny
+# # TODO Use Mojo::File (Mojo::Path) instead of Path::Tiny
+use Path::Tiny;
+use Perl::Dash::Renderer;
 
 has app_name => __PACKAGE__;
 
@@ -17,6 +25,8 @@ has external_stylesheets => sub { [] };
 has layout => sub { {} };
 
 has callbacks => sub { [] };
+
+has '_rendered_scripts';
 
 sub callback {
     my $self     = shift;
@@ -33,18 +43,30 @@ sub startup {
     my $renderer = $self->renderer;
     push @{ $renderer->classes }, __PACKAGE__;
 
+
     my $r = $self->routes;
     $r->get(
         '/' => sub {
             my $c = shift;
+            $c->stash(
+                stylesheets => $self->_rendered_stylesheets,
+                external_stylesheets => $self->_rendered_external_stylesheets,
+                scripts => $self->_rendered_scripts,
+                title => $self->app_name);
             $c->render( template => 'index' );
         }
+    );
+
+    $r->get('/_dash-component-suites/:namespace/*asset' => sub {
+            my $c = shift;
+            $c->reply->file(File::ShareDir::dist_file('Perl-Dash', Path::Tiny::path('assets', $c->stash('namespace'), $c->stash('asset'))->canonpath ));
+        } 
     );
 
     $r->get(
         '/_favicon.ico' => sub {
             my $c = shift;
-            $c->reply->file('favicon.ico');
+            $c->reply->file( File::ShareDir::dist_file('Perl-Dash', 'favicon.ico'));
         }
     );
 
@@ -52,22 +74,7 @@ sub startup {
         '/_dash-layout' => sub {
             my $c = shift;
             $c->render(
-                        json => {
-                                "props" => {
-                                    "children" => [
-                                        { "props" => { "id" => "my-id", "value" => "initial value", "type" => "text" },
-                                          "type"  => "Input",
-                                          "namespace" => "dash_core_components"
-                                        },
-                                        { "props"     => { "children" => JSON::null, "id" => "my-div" },
-                                          "type"      => "Div",
-                                          "namespace" => "dash_html_components"
-                                        }
-                                    ]
-                                },
-                                "type"      => "Div",
-                                "namespace" => "dash_html_components"
-                        }
+                        json => $self->layout()
             );
         }
     );
@@ -77,6 +84,7 @@ sub startup {
             my $c            = shift;
             my $dependencies = [];
             for my $callback ( @{ $self->callbacks } ) {
+                # TODO Handle state
                 my $rendered_callback = { state => [], clientside_function => JSON::null };
                 my $inputs            = [];
                 for my $input ( @{ $callback->{Inputs} } ) {
@@ -92,14 +100,6 @@ sub startup {
             }
             $c->render(
                 json => $dependencies
-
-                  #  [
-                  #{  "clientside_function" => JSON::null,
-                  #   "inputs"              => [ { "id" => "my-id", "property" => "value" } ],
-                  #   "output"              => "my-div.children",
-                  #   "state"               => []
-                  #}
-                  #]
             );
         }
     );
@@ -108,8 +108,6 @@ sub startup {
         '/_dash-update-component' => sub {
             my $c = shift;
 
-            # {"output":"my-div.children","changedPropIds":["my-id.value"],"inputs":[{"id":"my-id","property":"value","value":"initial value"}]}
-            #{"response": {"props": {"children": "You've entered \"initial value\""}}}
             my $request = $c->req->json;
 
             # Searching callbacks by 'changePropdIds'
@@ -142,6 +140,13 @@ sub startup {
 
 sub run_server {
     my $self = shift;
+
+    $self->_render_and_cache_scripts();
+
+    # Opening the browser before starting the daemon works because
+    #  open_browser returns inmediately
+    # TODO Open browser optional
+    Browser::Open::open_browser('http://127.0.0.1:8080');
     $self->start('daemon', '-l', 'http://*:8080');
 }
 
@@ -166,6 +171,108 @@ sub _search_callback {
     return \@matching_callbacks;
 }
 
+sub _rendered_stylesheets {
+    return '';
+}
+
+sub _rendered_external_stylesheets {
+    return '
+        <link rel="stylesheet" href="https://codepen.io/chriddyp/pen/bWLwgP.css">
+        ';
+}
+
+sub _render_and_cache_scripts {
+    # Render
+    my $self = shift;
+    my $scripts = $self->_render_scripts();
+    $self->_rendered_scripts($scripts);
+}
+
+sub _render_dash_config {
+    return
+            '<script id="_dash-config" type="application/json">{"url_base_pathname": null, "requests_pathname_prefix": "/", "ui": false, "props_check": false, "show_undo_redo": false}</script>';
+}
+
+sub _dash_renderer_js_dependencies {
+    my $js_dist_dependencies = Perl::Dash::Renderer::_js_dist_dependencies();
+    my @js_deps = ();
+    for my $deps (@$js_dist_dependencies) {
+        my $external_url = $deps->{external_url};
+        my $relative_package_path = $deps->{relative_package_path};
+        my $namespace = $deps->{namespace};
+        my $dep_count = 0;
+        for my $dep (@{$relative_package_path->{prod}}) {
+            my $js_dep = {
+                namespace => $namespace,
+                relative_package_path => $dep,
+                dev_package_path => $relative_package_path->{dev}[$dep_count],
+                external_url => $external_url->{prod}[$dep_count]
+                };
+            push @js_deps, $js_dep;
+            $dep_count++;
+        }
+    }
+     \@js_deps;
+}
+
+sub _dash_renderer_js_deps {
+    return Perl::Dash::Renderer::_js_dist();
+}
+
+sub _render_dash_renderer_script {
+    return '<script id="_dash-renderer" type="application/javascript">var renderer = new DashRenderer();</script>';
+}
+
+sub _render_scripts {
+    my $self = shift;
+
+    # First dash_renderer dependencies
+    my $scripts_dependendencies = $self->_dash_renderer_js_dependencies;
+
+    # Traverse layout and recover javascript dependencies
+    my $layout = $self->layout;
+
+    my $visitor;
+    my $stack_depth_limit = 1000;
+    $visitor = sub {
+        my $node = shift;
+        my $stack_depth = shift;
+        if ($stack_depth++ >= $stack_depth_limit) {
+            # TODO warn user that layout is too deep
+            return;
+        }
+        my $type = ref $node;
+        if ($type eq 'HASH') {
+            for my $key (keys %$node) {
+                $visitor->($node->{$key}, $stack_depth);
+            }
+        } elsif ($type eq 'ARRAY') {
+            for my $element (@$node) {
+                $visitor->($element, $stack_depth);
+            }
+        } elsif ( $type ne '') {
+            my $node_dependencies = $node->_js_dist();
+            push @$scripts_dependendencies, @$node_dependencies if defined $node_dependencies;
+            if ($node->can('children')) {
+                $visitor->($node->children, $stack_depth);
+            }
+        }
+    };
+
+    $visitor->($layout, 0);
+   
+    my $rendered_scripts = "";
+    $rendered_scripts .= $self->_render_dash_config();
+    push @$scripts_dependendencies, @{$self->_dash_renderer_js_deps()};
+    # TODO Avoid duplicates
+    for my $dep (@$scripts_dependendencies) {
+        $rendered_scripts .= '<script src="/' . join("/", '_dash-component-suites', $dep->{namespace}, $dep->{relative_package_path}) . '"></script>' . "\n";
+    }
+    $rendered_scripts .= $self->_render_dash_renderer_script();
+
+    return $rendered_scripts;
+}
+
 1;
 
 __DATA__
@@ -180,16 +287,7 @@ __DATA__
 </div>
 
         <footer>
-            <script id="_dash-config" type="application/json">{"url_base_pathname": null, "requests_pathname_prefix": "/", "ui": false, "props_check": false, "show_undo_redo": false}</script>
-            <script src="/_dash-component-suites/dash_renderer/polyfill@7.v1_2_2m1574885967.7.0.min.js"></script>
-<script src="/_dash-component-suites/dash_renderer/react@16.v1_2_2m1574885967.8.6.min.js"></script>
-<script src="/_dash-component-suites/dash_renderer/react-dom@16.v1_2_2m1574885967.8.6.min.js"></script>
-<script src="/_dash-component-suites/dash_renderer/prop-types@15.v1_2_2m1574885967.7.2.min.js"></script>
-<script src="/_dash-component-suites/dash_html_components/dash_html_components.v1_0_2m1573762545.min.js"></script>
-<script src="/_dash-component-suites/dash_core_components/highlight.v1_6_0m1574883968.pack.js"></script>
-<script src="/_dash-component-suites/dash_core_components/dash_core_components.v1_6_0m1574883964.min.js"></script>
-<script src="/_dash-component-suites/dash_renderer/dash_renderer.v1_2_2m1574885976.min.js"></script>
-            <script id="_dash-renderer" type="application/javascript">var renderer = new DashRenderer();</script>
+            <%== $scripts %>
         </footer>
 
 
@@ -199,9 +297,10 @@ __DATA__
     <head>
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta charset="UTF-8">
-        <title><%= title %></title>
+        <title><%= $title %></title>
         <link rel="icon" type="image/x-icon" href="/_favicon.ico?v=1.7.0">
-        <link rel="stylesheet" href="https://codepen.io/chriddyp/pen/bWLwgP.css">
+        <%== $stylesheets %>
+        <%== $external_stylesheets %>
     </head>
     <body>
         
