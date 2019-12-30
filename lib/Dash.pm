@@ -1,7 +1,8 @@
-package Dash::App;
+package Dash;
 
 use strict;
 use warnings;
+use 5.020;
 
 # VERSION
 
@@ -25,11 +26,30 @@ use Dash::Renderer;
 
 =head1 DESCRIPTION
 
-This library is a port of L<Plotly's Dash|https://dash.plot.ly/> to Perl. As
-the official doc says: I<Dash is a productive Python framework for building web applications>.
+This package is a port of L<Plotly's Dash|https://dash.plot.ly/> to Perl. As
+the official Dash doc says: I<Dash is a productive Python framework for building web applications>. 
+So this Perl package is a humble atempt to ease the task of building data visualization web apps in Perl.
 
-This Perl packge is a humble atempt to ease the task of building data visualization web apps in Perl.
 The ultimate goal of course is to support everything that the Python version supports.
+
+The use will follow, as close as possible, the Python version of Dash so the Python doc can be used with
+minor changes:
+
+=over 4
+
+=item Use of -> (arrow operator) instead of .
+
+=item Main package and class for apps is Dash
+
+=item Component suites will use Perl package convention, I mean: dash_html_components will be Dash::Html::Components, although for new component suites you could use whatever package name you like
+
+=item Instead of decorators we'll use plain old callbacks
+
+=item Instead of Flask we'll be using L<Mojolicious> (Maybe in the future L<Dancer2>)
+
+=back
+
+In the SYNOPSIS you can get a taste of how this works and also in L<the examples folder of the distribution|https://metacpan.org/release/Dash> or directly in L<repository|https://github.com/pablrod/perl-Dash/tree/master/examples>
 
 =head1 SYNOPSIS
 

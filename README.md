@@ -1,22 +1,22 @@
 # NAME
 
-Dash::App - Analytical Web Apps in Perl (Port of Plotly's Dash to Perl)
+Dash - Analytical Web Apps in Perl (Port of Plotly's Dash to Perl)
 
 # VERSION
 
-version 0.01
+version 0.02
 
 # SYNOPSIS
 
 ```perl
-use Dash::App;
+use Dash;
 use aliased 'Dash::Html::Components::Div';
 use aliased 'Dash::Html::Components::H1';
 use aliased 'Dash::Core::Components::Input';
 
 my $external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css'];
 
-my $app = Dash::App->new(
+my $app = Dash->new(
     app_name             => 'Basic Callbacks',
     external_stylesheets => $external_stylesheets
 );
@@ -40,14 +40,14 @@ $app->callback(
 
 $app->run_server();
 
-use Dash::App;
+use Dash;
 use aliased 'Dash::Html::Components::Div';
 use aliased 'Dash::Core::Components::Input';
 use aliased 'Dash::Core::Components::Graph';
 
 my $external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css'];
 
-my $app = Dash::App->new(
+my $app = Dash->new(
     app_name             => 'Basic Callbacks',
     external_stylesheets => $external_stylesheets
 );
@@ -84,11 +84,22 @@ $app->run_server();
 
 # DESCRIPTION
 
-This library is a port of [Plotly's Dash](https://dash.plot.ly/) to Perl. As
-the official doc says: _Dash is a productive Python framework for building web applications_.
+This package is a port of [Plotly's Dash](https://dash.plot.ly/) to Perl. As
+the official Dash doc says: _Dash is a productive Python framework for building web applications_. 
+So this Perl package is a humble atempt to ease the task of building data visualization web apps in Perl.
 
-This Perl packge is a humble atempt to ease the task of building data visualization web apps in Perl.
 The ultimate goal of course is to support everything that the Python version supports.
+
+The use will follow, as close as possible, the Python version of Dash so the Python doc can be used with
+minor changes:
+
+- Use of -> (arrow operator) instead of .
+- Main package and class for apps is Dash
+- Component suites will use Perl package convention, I mean: dash\_html\_components will be Dash::Html::Components, although for new component suites you could use whatever package name you like
+- Instead of decorators we'll use plain old callbacks
+- Instead of Flask we'll be using [Mojolicious](https://metacpan.org/pod/Mojolicious) (Maybe in the future [Dancer2](https://metacpan.org/pod/Dancer2))
+
+In the SYNOPSIS you can get a taste of how this works and also in [the examples folder of the distribution](https://metacpan.org/release/Dash) or directly in [repository](https://github.com/pablrod/perl-Dash/tree/master/examples)
 
 # STATUS
 

@@ -1,11 +1,11 @@
-use Dash::App;
+use Dash;
 use aliased 'Dash::Html::Components::Div';
 use aliased 'Dash::Html::Components::H1';
 use aliased 'Dash::Core::Components::Input';
 
 my $external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css'];
 
-my $app = Dash::App->new(
+my $app = Dash->new(
     app_name             => 'Basic Callbacks',
     external_stylesheets => $external_stylesheets
 );
