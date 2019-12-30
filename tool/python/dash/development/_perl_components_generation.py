@@ -63,9 +63,11 @@ def generate_class_string(typename, props, description, namespace):
 
 def _perl_package_name_from_shortname(shortname):
     namespace_components = shortname.split("_")
-    package_name = "Perl"
+    package_name = ""
     for namespace_component in namespace_components:
-        package_name += "::" + namespace_component.title()
+        if (len(package_name) > 0):
+            package_name += "::"
+        package_name += namespace_component.title()
     return package_name
 
 def _perl_file_name_from_shortname(shortname):
@@ -86,13 +88,13 @@ def generate_perl_package_file(typename, props, description, namespace):
     -------
     """
     perl_base_package = _perl_package_name_from_shortname(namespace)
-    package_name = perl_base_package + "::" + typename.title()
+    package_name = perl_base_package + "::" + typename
 
     import_string =\
         "# AUTO GENERATED FILE - DO NOT EDIT\n\n" + \
         "package " + package_name + ";\n\n" + \
         "use " + perl_base_package + ";\n" + \
-        "use Mojo::Base 'Perl::Dash::BaseComponent';\n\n"
+        "use Mojo::Base 'Dash::BaseComponent';\n\n"
 
     class_string = generate_class_string(
         typename,

@@ -55,7 +55,7 @@ for my $js_file ($dash_renderer_path->child('dash_renderer')->children(qr/\.js$/
 my $python_script_extract_renderer_js_deps = path('tool', 'python', 'aux_dash_renderer.py');
 my $dash_renderer_deps_path = $dist_share_js_renderer->child('js_deps.json');
 
-# TODO extract js_deps.json into Perl::Dash::Renderer using aux_dash_renderer.py
+# TODO extract js_deps.json into Dash::Renderer using aux_dash_renderer.py
 system("source $dash_venv_path; python $python_script_extract_renderer_js_deps > $dash_renderer_deps_path");
 
 for my $component_suite (@$dash_component_packages) {
@@ -63,7 +63,6 @@ for my $component_suite (@$dash_component_packages) {
 
     my $component_suite_path = path('..', $component_suite);
     system("source $dash_venv_path; cd $component_suite_path; npm run build:py_and_r");
-    # TODO Copy every .pm file to dist
 
     my $perl_base_path = $component_suite_path->child('Perl');
 
@@ -80,7 +79,9 @@ for my $component_suite (@$dash_component_packages) {
         $js_file->copy($component_suite_assets_path);
     }
 
-    my $component_suite_package_files_directory = path('lib', 'Perl', map {ucfirst } split(/-/, $component_suite));
+    my $component_suite_package_files_directory = path('lib', map {ucfirst } split(/-/, $component_suite));
+    $component_suite_package_files_directory->remove_tree();
+    $component_suite_package_files_directory->mkpath();
     for my $pm_file ($perl_base_path->child($component_suite_assets_directory_name)->children(qr/\.pm$/)) {
         $pm_file->copy($component_suite_package_files_directory);
     }

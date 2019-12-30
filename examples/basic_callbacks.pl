@@ -1,16 +1,11 @@
-#!/usr/bin/env perl 
-use strict;
-use warnings;
-use utf8;
-
-use Perl::Dash;
-use aliased 'Perl::Dash::Html::Components::Div';
-use aliased 'Perl::Dash::Html::Components::H1';
-use aliased 'Perl::Dash::Core::Components::Input';
+use Dash::App;
+use aliased 'Dash::Html::Components::Div';
+use aliased 'Dash::Html::Components::H1';
+use aliased 'Dash::Core::Components::Input';
 
 my $external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css'];
 
-my $app = Perl::Dash->new(
+my $app = Dash::App->new(
     app_name             => 'Basic Callbacks',
     external_stylesheets => $external_stylesheets
 );
@@ -21,10 +16,6 @@ $app->layout(
         Input->new(id => 'my-id', value => 'initial value', type => 'text'),
         Div->new(id => 'my-div')
     ])
-    #Div([
-    #        Input(id => 'my-id', value => 'initial value', type => 'text'),
-    #        Div(id => 'my-div')
-    #    ])
 );
 
 $app->callback(
@@ -36,9 +27,5 @@ $app->callback(
     }
 );
 
-if ( !caller() ) {
-    $app->run_server();
-} else {
-    1;
-}
+$app->run_server();
 
