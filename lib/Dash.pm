@@ -51,6 +51,22 @@ minor changes:
 
 In the SYNOPSIS you can get a taste of how this works and also in L<the examples folder of the distribution|https://metacpan.org/release/Dash> or directly in L<repository|https://github.com/pablrod/perl-Dash/tree/master/examples>
 
+=head2 Components
+
+This package ships the following component suites and are ready to use:
+
+=over 4
+
+=item L<Dash Core Components|https://dash.plot.ly/dash-core-components> as Dash::Core::Components
+
+=item L<Dash Html Components|https://dash.plot.ly/dash-html-components> as Dash::Html::Components
+
+=item L<Dash DataTable|https://dash.plot.ly/datatable> as Dash::Table
+
+=back
+
+The plan is to make the packages also for L<Dash-Bio|https://dash.plot.ly/dash-bio>, L<Dash-DAQ|https://dash.plot.ly/dash-daq>, L<Dash-Canvas|https://dash.plot.ly/canvas> and L<Dash-Cytoscape|https://dash.plot.ly/cytoscape>.
+
 =head1 SYNOPSIS
 
 # EXAMPLE: examples/basic_callbacks.pl

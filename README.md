@@ -4,7 +4,7 @@ Dash - Analytical Web Apps in Perl (Port of Plotly's Dash to Perl)
 
 # VERSION
 
-version 0.02
+version 0.03
 
 # SYNOPSIS
 
@@ -101,6 +101,16 @@ minor changes:
 
 In the SYNOPSIS you can get a taste of how this works and also in [the examples folder of the distribution](https://metacpan.org/release/Dash) or directly in [repository](https://github.com/pablrod/perl-Dash/tree/master/examples)
 
+## Components
+
+This package ships the following component suites and are ready to use:
+
+- [Dash Core Components](https://dash.plot.ly/dash-core-components) as Dash::Core::Components
+- [Dash Html Components](https://dash.plot.ly/dash-html-components) as Dash::Html::Components
+- [Dash DataTable](https://dash.plot.ly/datatable) as Dash::Table
+
+The plan is to make the packages also for [Dash-Bio](https://dash.plot.ly/dash-bio), [Dash-DAQ](https://dash.plot.ly/dash-daq), [Dash-Canvas](https://dash.plot.ly/canvas) and [Dash-Cytoscape](https://dash.plot.ly/cytoscape).
+
 # STATUS
 
 At this moment this library is experimental and still under active
@@ -131,7 +141,7 @@ Pablo Rodríguez González <pablo.rodriguez.gonzalez@gmail.com>
 
 # COPYRIGHT AND LICENSE
 
-This software is Copyright (c) 2019 by Pablo Rodríguez González.
+This software is Copyright (c) 2020 by Pablo Rodríguez González.
 
 This is free software, licensed under:
 
