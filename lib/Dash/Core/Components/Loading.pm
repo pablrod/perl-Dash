@@ -2,18 +2,40 @@
 
 package Dash::Core::Components::Loading;
 
+use Moo;
+use strictures 2;
 use Dash::Core::Components;
-use Mojo::Base 'Dash::BaseComponent';
+use namespace::clean;
 
-has 'id';
-has 'children';
-has 'type';
-has 'fullscreen';
-has 'debug';
-has 'className';
-has 'style';
-has 'color';
-has 'loading_state';
+extends 'Dash::BaseComponent';
+
+has 'id' => (
+  is => 'rw'
+);
+has 'children' => (
+  is => 'rw'
+);
+has 'type' => (
+  is => 'rw'
+);
+has 'fullscreen' => (
+  is => 'rw'
+);
+has 'debug' => (
+  is => 'rw'
+);
+has 'className' => (
+  is => 'rw'
+);
+has 'style' => (
+  is => 'rw'
+);
+has 'color' => (
+  is => 'rw'
+);
+has 'loading_state' => (
+  is => 'rw'
+);
 my $dash_namespace = 'dash_core_components';
 
 sub DashNamespace {

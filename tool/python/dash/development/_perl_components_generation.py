@@ -54,7 +54,7 @@ def generate_class_string(typename, props, description, namespace):
     for p in prop_keys:
         # TODO support wildcard attributes
         if  p[-1] != "*":
-            string_attributes += "has '{}';\n".format(p)
+            string_attributes += "has '{}' => (\n  is => 'rw'\n);\n".format(p)
     perl_package_name = _perl_package_name_from_shortname(namespace)
     common = "my $dash_namespace = '" + namespace + "';\n\nsub DashNamespace {\nreturn $dash_namespace;\n}\nsub _js_dist {\nreturn " + perl_package_name + "::_js_dist;\n}\n"
     return string_attributes + common
@@ -93,8 +93,11 @@ def generate_perl_package_file(typename, props, description, namespace):
     import_string =\
         "# AUTO GENERATED FILE - DO NOT EDIT\n\n" + \
         "package " + package_name + ";\n\n" + \
+        "use Moo;\n" + \
+        "use strictures 2;\n" + \
         "use " + perl_base_package + ";\n" + \
-        "use Mojo::Base 'Dash::BaseComponent';\n\n"
+        "use namespace::clean;\n\n" + \
+        "extends 'Dash::BaseComponent';\n\n"
 
     class_string = generate_class_string(
         typename,

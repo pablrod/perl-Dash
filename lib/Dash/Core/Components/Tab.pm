@@ -2,21 +2,49 @@
 
 package Dash::Core::Components::Tab;
 
+use Moo;
+use strictures 2;
 use Dash::Core::Components;
-use Mojo::Base 'Dash::BaseComponent';
+use namespace::clean;
 
-has 'id';
-has 'label';
-has 'children';
-has 'value';
-has 'disabled';
-has 'disabled_style';
-has 'disabled_className';
-has 'className';
-has 'selected_className';
-has 'style';
-has 'selected_style';
-has 'loading_state';
+extends 'Dash::BaseComponent';
+
+has 'id' => (
+  is => 'rw'
+);
+has 'label' => (
+  is => 'rw'
+);
+has 'children' => (
+  is => 'rw'
+);
+has 'value' => (
+  is => 'rw'
+);
+has 'disabled' => (
+  is => 'rw'
+);
+has 'disabled_style' => (
+  is => 'rw'
+);
+has 'disabled_className' => (
+  is => 'rw'
+);
+has 'className' => (
+  is => 'rw'
+);
+has 'selected_className' => (
+  is => 'rw'
+);
+has 'style' => (
+  is => 'rw'
+);
+has 'selected_style' => (
+  is => 'rw'
+);
+has 'loading_state' => (
+  is => 'rw'
+);
 my $dash_namespace = 'dash_core_components';
 
 sub DashNamespace {

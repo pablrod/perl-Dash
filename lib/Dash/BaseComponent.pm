@@ -1,6 +1,8 @@
 package Dash::BaseComponent;
 
-use Mojo::Base -base;
+use Moo;
+use strictures 2;
+use namespace::clean;
 
 sub DashNamespace {
     return 'no_namespace';

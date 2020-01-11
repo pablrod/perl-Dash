@@ -2,14 +2,28 @@
 
 package Dash::Core::Components::Store;
 
+use Moo;
+use strictures 2;
 use Dash::Core::Components;
-use Mojo::Base 'Dash::BaseComponent';
+use namespace::clean;
 
-has 'id';
-has 'storage_type';
-has 'data';
-has 'clear_data';
-has 'modified_timestamp';
+extends 'Dash::BaseComponent';
+
+has 'id' => (
+  is => 'rw'
+);
+has 'storage_type' => (
+  is => 'rw'
+);
+has 'data' => (
+  is => 'rw'
+);
+has 'clear_data' => (
+  is => 'rw'
+);
+has 'modified_timestamp' => (
+  is => 'rw'
+);
 my $dash_namespace = 'dash_core_components';
 
 sub DashNamespace {

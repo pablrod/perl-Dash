@@ -2,16 +2,34 @@
 
 package Dash::Core::Components::LogoutButton;
 
+use Moo;
+use strictures 2;
 use Dash::Core::Components;
-use Mojo::Base 'Dash::BaseComponent';
+use namespace::clean;
 
-has 'id';
-has 'label';
-has 'logout_url';
-has 'style';
-has 'method';
-has 'className';
-has 'loading_state';
+extends 'Dash::BaseComponent';
+
+has 'id' => (
+  is => 'rw'
+);
+has 'label' => (
+  is => 'rw'
+);
+has 'logout_url' => (
+  is => 'rw'
+);
+has 'style' => (
+  is => 'rw'
+);
+has 'method' => (
+  is => 'rw'
+);
+has 'className' => (
+  is => 'rw'
+);
+has 'loading_state' => (
+  is => 'rw'
+);
 my $dash_namespace = 'dash_core_components';
 
 sub DashNamespace {

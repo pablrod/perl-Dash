@@ -2,28 +2,70 @@
 
 package Dash::Html::Components::Cite;
 
+use Moo;
+use strictures 2;
 use Dash::Html::Components;
-use Mojo::Base 'Dash::BaseComponent';
+use namespace::clean;
 
-has 'id';
-has 'children';
-has 'n_clicks';
-has 'n_clicks_timestamp';
-has 'key';
-has 'role';
-has 'accessKey';
-has 'className';
-has 'contentEditable';
-has 'contextMenu';
-has 'dir';
-has 'draggable';
-has 'hidden';
-has 'lang';
-has 'spellCheck';
-has 'style';
-has 'tabIndex';
-has 'title';
-has 'loading_state';
+extends 'Dash::BaseComponent';
+
+has 'id' => (
+  is => 'rw'
+);
+has 'children' => (
+  is => 'rw'
+);
+has 'n_clicks' => (
+  is => 'rw'
+);
+has 'n_clicks_timestamp' => (
+  is => 'rw'
+);
+has 'key' => (
+  is => 'rw'
+);
+has 'role' => (
+  is => 'rw'
+);
+has 'accessKey' => (
+  is => 'rw'
+);
+has 'className' => (
+  is => 'rw'
+);
+has 'contentEditable' => (
+  is => 'rw'
+);
+has 'contextMenu' => (
+  is => 'rw'
+);
+has 'dir' => (
+  is => 'rw'
+);
+has 'draggable' => (
+  is => 'rw'
+);
+has 'hidden' => (
+  is => 'rw'
+);
+has 'lang' => (
+  is => 'rw'
+);
+has 'spellCheck' => (
+  is => 'rw'
+);
+has 'style' => (
+  is => 'rw'
+);
+has 'tabIndex' => (
+  is => 'rw'
+);
+has 'title' => (
+  is => 'rw'
+);
+has 'loading_state' => (
+  is => 'rw'
+);
 my $dash_namespace = 'dash_html_components';
 
 sub DashNamespace {

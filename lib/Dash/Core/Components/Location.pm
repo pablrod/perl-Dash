@@ -2,15 +2,31 @@
 
 package Dash::Core::Components::Location;
 
+use Moo;
+use strictures 2;
 use Dash::Core::Components;
-use Mojo::Base 'Dash::BaseComponent';
+use namespace::clean;
 
-has 'id';
-has 'pathname';
-has 'search';
-has 'hash';
-has 'href';
-has 'refresh';
+extends 'Dash::BaseComponent';
+
+has 'id' => (
+  is => 'rw'
+);
+has 'pathname' => (
+  is => 'rw'
+);
+has 'search' => (
+  is => 'rw'
+);
+has 'hash' => (
+  is => 'rw'
+);
+has 'href' => (
+  is => 'rw'
+);
+has 'refresh' => (
+  is => 'rw'
+);
 my $dash_namespace = 'dash_core_components';
 
 sub DashNamespace {

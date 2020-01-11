@@ -2,27 +2,67 @@
 
 package Dash::Core::Components::Slider;
 
+use Moo;
+use strictures 2;
 use Dash::Core::Components;
-use Mojo::Base 'Dash::BaseComponent';
+use namespace::clean;
 
-has 'id';
-has 'marks';
-has 'value';
-has 'className';
-has 'disabled';
-has 'dots';
-has 'included';
-has 'min';
-has 'max';
-has 'tooltip';
-has 'step';
-has 'vertical';
-has 'verticalHeight';
-has 'updatemode';
-has 'loading_state';
-has 'persistence';
-has 'persisted_props';
-has 'persistence_type';
+extends 'Dash::BaseComponent';
+
+has 'id' => (
+  is => 'rw'
+);
+has 'marks' => (
+  is => 'rw'
+);
+has 'value' => (
+  is => 'rw'
+);
+has 'className' => (
+  is => 'rw'
+);
+has 'disabled' => (
+  is => 'rw'
+);
+has 'dots' => (
+  is => 'rw'
+);
+has 'included' => (
+  is => 'rw'
+);
+has 'min' => (
+  is => 'rw'
+);
+has 'max' => (
+  is => 'rw'
+);
+has 'tooltip' => (
+  is => 'rw'
+);
+has 'step' => (
+  is => 'rw'
+);
+has 'vertical' => (
+  is => 'rw'
+);
+has 'verticalHeight' => (
+  is => 'rw'
+);
+has 'updatemode' => (
+  is => 'rw'
+);
+has 'loading_state' => (
+  is => 'rw'
+);
+has 'persistence' => (
+  is => 'rw'
+);
+has 'persisted_props' => (
+  is => 'rw'
+);
+has 'persistence_type' => (
+  is => 'rw'
+);
 my $dash_namespace = 'dash_core_components';
 
 sub DashNamespace {

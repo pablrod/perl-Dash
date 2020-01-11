@@ -2,14 +2,28 @@
 
 package Dash::Core::Components::Interval;
 
+use Moo;
+use strictures 2;
 use Dash::Core::Components;
-use Mojo::Base 'Dash::BaseComponent';
+use namespace::clean;
 
-has 'id';
-has 'interval';
-has 'disabled';
-has 'n_intervals';
-has 'max_intervals';
+extends 'Dash::BaseComponent';
+
+has 'id' => (
+  is => 'rw'
+);
+has 'interval' => (
+  is => 'rw'
+);
+has 'disabled' => (
+  is => 'rw'
+);
+has 'n_intervals' => (
+  is => 'rw'
+);
+has 'max_intervals' => (
+  is => 'rw'
+);
 my $dash_namespace = 'dash_core_components';
 
 sub DashNamespace {

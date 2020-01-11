@@ -2,18 +2,40 @@
 
 package Dash::Core::Components::ConfirmDialogProvider;
 
+use Moo;
+use strictures 2;
 use Dash::Core::Components;
-use Mojo::Base 'Dash::BaseComponent';
+use namespace::clean;
 
-has 'id';
-has 'message';
-has 'submit_n_clicks';
-has 'submit_n_clicks_timestamp';
-has 'cancel_n_clicks';
-has 'cancel_n_clicks_timestamp';
-has 'displayed';
-has 'children';
-has 'loading_state';
+extends 'Dash::BaseComponent';
+
+has 'id' => (
+  is => 'rw'
+);
+has 'message' => (
+  is => 'rw'
+);
+has 'submit_n_clicks' => (
+  is => 'rw'
+);
+has 'submit_n_clicks_timestamp' => (
+  is => 'rw'
+);
+has 'cancel_n_clicks' => (
+  is => 'rw'
+);
+has 'cancel_n_clicks_timestamp' => (
+  is => 'rw'
+);
+has 'displayed' => (
+  is => 'rw'
+);
+has 'children' => (
+  is => 'rw'
+);
+has 'loading_state' => (
+  is => 'rw'
+);
 my $dash_namespace = 'dash_core_components';
 
 sub DashNamespace {
