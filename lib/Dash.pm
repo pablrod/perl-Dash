@@ -83,9 +83,9 @@ has layout => sub { {} };
 
 has callbacks => sub { [] };
 
-has '_rendered_scripts';
+has '_rendered_scripts' => "";
 
-has '_rendered_external_stylesheets';
+has '_rendered_external_stylesheets' => "";
 
 sub callback {
     my $self     = shift;
@@ -211,6 +211,8 @@ sub startup {
                 my $updated_property = ( split( /\./, $request->{output} ) )[-1];
                 my $props_updated    = { $updated_property => $updated_value };
                 $c->render( json => { response => { props => $props_updated } } );
+            } else {
+                $c->render( json => { response => "There is no registered callbacks"} );
             }
         }
     );
