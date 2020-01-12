@@ -4,7 +4,7 @@ package Dash::Core::Components::Markdown;
 
 use Moo;
 use strictures 2;
-use Dash::Core::Components;
+use Dash::Core::ComponentsAssets;
 use namespace::clean;
 
 extends 'Dash::BaseComponent';
@@ -36,10 +36,10 @@ has 'style' => (
 my $dash_namespace = 'dash_core_components';
 
 sub DashNamespace {
-return $dash_namespace;
+    return $dash_namespace;
 }
 sub _js_dist {
-return Dash::Core::Components::_js_dist;
+    return Dash::Core::ComponentsAssets::_js_dist;
 }
 
 1;

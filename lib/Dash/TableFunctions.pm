@@ -1,10 +1,10 @@
-package Dash::Table;
+package Dash::TableFunctions;
 use strict;
 use warnings;
 use Module::Load;
+use Exporter::Auto;
 
 sub DataTable {
-    shift @_;
     load Dash::Table::DataTable;
     return Dash::Table::DataTable->new(@_);
 }

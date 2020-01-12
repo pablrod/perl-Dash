@@ -4,7 +4,7 @@ package Dash::Table::DataTable;
 
 use Moo;
 use strictures 2;
-use Dash::Table;
+use Dash::TableAssets;
 use namespace::clean;
 
 extends 'Dash::BaseComponent';
@@ -231,10 +231,10 @@ has 'persistence_type' => (
 my $dash_namespace = 'dash_table';
 
 sub DashNamespace {
-return $dash_namespace;
+    return $dash_namespace;
 }
 sub _js_dist {
-return Dash::Table::_js_dist;
+    return Dash::TableAssets::_js_dist;
 }
 
 1;

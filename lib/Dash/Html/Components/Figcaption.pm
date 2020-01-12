@@ -4,7 +4,7 @@ package Dash::Html::Components::Figcaption;
 
 use Moo;
 use strictures 2;
-use Dash::Html::Components;
+use Dash::Html::ComponentsAssets;
 use namespace::clean;
 
 extends 'Dash::BaseComponent';
@@ -69,10 +69,10 @@ has 'loading_state' => (
 my $dash_namespace = 'dash_html_components';
 
 sub DashNamespace {
-return $dash_namespace;
+    return $dash_namespace;
 }
 sub _js_dist {
-return Dash::Html::Components::_js_dist;
+    return Dash::Html::ComponentsAssets::_js_dist;
 }
 
 1;

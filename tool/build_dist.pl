@@ -155,6 +155,9 @@ for my $component_suite (@$dash_component_packages) {
     for my $pm_file ($perl_base_path->child($component_suite_assets_directory_name)->children(qr/\.pm$/)) {
         $pm_file->copy($component_suite_package_files_directory);
     }
+    for my $pm_file ($perl_base_path->children(qr/\.pm$/)) {
+        $pm_file->copy($component_suite_package_files_directory->parent);
+    }
 }
 
 # TODO Automatic Components.pm generation
