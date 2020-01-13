@@ -1,19 +1,25 @@
 use Dash;
-use aliased 'Dash::Html::Components' => 'html';
-use aliased 'Dash::Core::Components' => 'dcc';
+
+# Every component suite gets a package with all the components with
+# factory methods to avoid loading one by one the components
+# That is: Dash::Html::ComponentsFunctions load
+# one factory method for component, for example
+# Div() calls Dash::Html::Components::Div->new()
+use Dash::Html::ComponentsFunctions;
+use Dash::Core::ComponentsFunctions;
 
 my $external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css'];
 
 my $app = Dash->new(
-    app_name             => 'Random chart',
+    app_name             => 'Basic Callbacks',
     external_stylesheets => $external_stylesheets
 );
 
 my $initial_number_of_values = 20;
 $app->layout(
-    html->Div(children => [
-        dcc->Input(id => 'my-id', value => $initial_number_of_values, type => 'number'),
-        dcc->Graph(id => 'my-graph')
+    Div(children => [
+        Input(id => 'my-id', value => $initial_number_of_values, type => 'number'),
+        Graph(id => 'my-graph')
     ])
 );
 

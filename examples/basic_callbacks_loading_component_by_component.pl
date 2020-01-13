@@ -1,19 +1,20 @@
 use Dash;
-use aliased 'Dash::Html::Components' => 'html';
-use aliased 'Dash::Core::Components' => 'dcc';
+use Dash::Html::Components::Div;
+use aliased 'Dash::Core::Components:Input';
+use aliased 'Dash::Core::Components:Graph';
 
 my $external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css'];
 
 my $app = Dash->new(
-    app_name             => 'Random chart',
+    app_name             => 'Basic Callbacks',
     external_stylesheets => $external_stylesheets
 );
 
 my $initial_number_of_values = 20;
 $app->layout(
-    html->Div(children => [
-        dcc->Input(id => 'my-id', value => $initial_number_of_values, type => 'number'),
-        dcc->Graph(id => 'my-graph')
+    Dash::Html::Components::Div->new(children => [
+        Input->new(id => 'my-id', value => $initial_number_of_values, type => 'number'),
+        Graph->new(id => 'my-graph')
     ])
 );
 
