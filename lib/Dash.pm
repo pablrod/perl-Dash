@@ -22,6 +22,7 @@ use Dash::Renderer;
 # TODO Add ci badges
 
 =pod
+
 =encoding utf8
 
 =head1 DESCRIPTION
@@ -37,15 +38,15 @@ minor changes:
 
 =over 4
 
-=item Use of -> (arrow operator) instead of .
+=item * Use of -> (arrow operator) instead of .
 
-=item Main package and class for apps is Dash
+=item * Main package and class for apps is Dash
 
-=item Component suites will use Perl package convention, I mean: dash_html_components will be Dash::Html::Components, although for new component suites you could use whatever package name you like
+=item * Component suites will use Perl package convention, I mean: dash_html_components will be Dash::Html::Components, although for new component suites you could use whatever package name you like
 
-=item Instead of decorators we'll use plain old callbacks
+=item * Instead of decorators we'll use plain old callbacks
 
-=item Instead of Flask we'll be using L<Mojolicious> (Maybe in the future L<Dancer2>)
+=item * Instead of Flask we'll be using L<Mojolicious> (Maybe in the future L<Dancer2>)
 
 =back
 
@@ -57,15 +58,53 @@ This package ships the following component suites and are ready to use:
 
 =over 4
 
-=item L<Dash Core Components|https://dash.plot.ly/dash-core-components> as Dash::Core::Components
+=item * L<Dash Core Components|https://dash.plot.ly/dash-core-components> as Dash::Core::Components
 
-=item L<Dash Html Components|https://dash.plot.ly/dash-html-components> as Dash::Html::Components
+=item * L<Dash Html Components|https://dash.plot.ly/dash-html-components> as Dash::Html::Components
 
-=item L<Dash DataTable|https://dash.plot.ly/datatable> as Dash::Table
+=item * L<Dash DataTable|https://dash.plot.ly/datatable> as Dash::Table
 
 =back
 
 The plan is to make the packages also for L<Dash-Bio|https://dash.plot.ly/dash-bio>, L<Dash-DAQ|https://dash.plot.ly/dash-daq>, L<Dash-Canvas|https://dash.plot.ly/canvas> and L<Dash-Cytoscape|https://dash.plot.ly/cytoscape>.
+
+=head3 Using the components
+
+Every component has a class of its own. For example dash-html-component Div has the class: L<Dash::Html::Components::Div> and you can use it the perl standard way:
+
+    use Dash::Html::Components::Div;
+    ...
+    $app->layout(Dash::Html::Components::Div->new(id => 'my-div', children => 'This is a simple div'));
+
+But with every component suite could be a lot of components. So to ease the task of importing them (one by one is a little bit tedious) we could use two ways:
+
+=head4 Factory methods
+
+Every component suite has a factory method for every component. For example L<Dash::Html::Components> has the factory method Div to load and build a L<Dash::Html::Components::Div> component:
+
+    use Dash::Html::Components;
+    ...
+    $app->layout(Dash::Html::Components->Div(id => 'my-div', children => 'This is a simple div'));
+
+But this factory methods are meant to be aliased so this gets less verbose:
+
+    use aliased 'Dash::Html::Components' => 'html';
+    ...
+    $app->layout(html->Div(id => 'my-div', children => 'This is a simple div'));
+
+
+=head4 Functions
+
+Many modules use the L<Exporter> & friends to reduce typing. If you like that way every component suite gets a Functions package to import all this functions
+to your namespace.
+
+So for example for L<Dash::Html::Components> there is a package L<Dash::Html::ComponentsFunctions> with one factory function to load and build the component with the same name:
+
+    use Dash::Html::ComponentsFunctions;
+    ...
+    $app->layout(Div(id => 'my-div', children => 'This is a simple div'));
+
+    
 
 =head1 SYNOPSIS
 
@@ -388,7 +427,7 @@ sub _filter_resources {
         my $async = $resource->{async};
         if (defined $async) {
             if (defined $dynamic) {
-                die 'A resource can have both dynamic and async: ' + to_json($resource); 
+                die "A resource can't have both dynamic and async: " + to_json($resource); 
             }
             my $dynamic = 1;
             if ($async eq 'lazy') {
@@ -485,11 +524,19 @@ If you like Dash please consider supporting them purchasing professional service
 
 =head1 SEE ALSO
 
-L<Dash|https://dash.plot.ly/>
-L<Dash Repository|https://github.com/plotly/dash>
-L<Chart::Plotly>
-L<Chart::GGPlot>
-L<Alt::Data::Frame::ButMore>
+=over 4
+
+=item L<Dash|https://dash.plot.ly/>
+
+=item L<Dash Repository|https://github.com/plotly/dash>
+
+=item L<Chart::Plotly>
+
+=item L<Chart::GGPlot>
+
+=item L<Alt::Data::Frame::ButMore>
+
+=item L<AI::MXNet>
 
 =cut
 
