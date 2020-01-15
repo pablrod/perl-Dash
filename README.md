@@ -10,9 +10,8 @@ version 0.05
 
 ```perl
 use Dash;
-use aliased 'Dash::Html::Components::Div';
-use aliased 'Dash::Html::Components::H1';
-use aliased 'Dash::Core::Components::Input';
+use aliased 'Dash::Html::Components' => 'html';
+use aliased 'Dash::Core::Components' => 'dcc';
 
 my $external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css'];
 
@@ -22,10 +21,9 @@ my $app = Dash->new(
 );
 
 $app->layout(
-    Div->new(children => [
-        H1->new(children => 'Titulo'),
-        Input->new(id => 'my-id', value => 'initial value', type => 'text'),
-        Div->new(id => 'my-div')
+    html->Div(children => [
+        dcc->Input(id => 'my-id', value => 'initial value', type => 'text'),
+        html->Div(id => 'my-div')
     ])
 );
 
@@ -34,29 +32,28 @@ $app->callback(
     Inputs => [{component_id=>'my-id', component_property=> 'value'}],
     callback => sub {
         my $input_value = shift;
-        return "You've entered \"$input_value\"";
+        return "You've entered '$input_value'";
     }
 );
 
 $app->run_server();
 
 use Dash;
-use aliased 'Dash::Html::Components::Div';
-use aliased 'Dash::Core::Components::Input';
-use aliased 'Dash::Core::Components::Graph';
+use aliased 'Dash::Html::Components' => 'html';
+use aliased 'Dash::Core::Components' => 'dcc';
 
 my $external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css'];
 
 my $app = Dash->new(
-    app_name             => 'Basic Callbacks',
+    app_name             => 'Random chart',
     external_stylesheets => $external_stylesheets
 );
 
 my $initial_number_of_values = 20;
 $app->layout(
-    Div->new(children => [
-        Input->new(id => 'my-id', value => $initial_number_of_values, type => 'number'),
-        Graph->new(id => 'my-graph')
+    html->Div(children => [
+        dcc->Input(id => 'my-id', value => $initial_number_of_values, type => 'number'),
+        dcc->Graph(id => 'my-graph')
     ])
 );
 
@@ -99,7 +96,7 @@ minor changes:
 - Instead of decorators we'll use plain old callbacks
 - Instead of Flask we'll be using [Mojolicious](https://metacpan.org/pod/Mojolicious) (Maybe in the future [Dancer2](https://metacpan.org/pod/Dancer2))
 
-In the SYNOPSIS you can get a taste of how this works and also in [the examples folder of the distribution](https://metacpan.org/release/Dash) or directly in [repository](https://github.com/pablrod/perl-Dash/tree/master/examples)
+In the SYNOPSIS you can get a taste of how this works and also in [the examples folder of the distribution](https://metacpan.org/release/Dash) or directly in [repository](https://github.com/pablrod/perl-Dash/tree/master/examples). The full Dash tutorial is ported to Perl in those examples folder.
 
 ## Components
 
@@ -111,12 +108,98 @@ This package ships the following component suites and are ready to use:
 
 The plan is to make the packages also for [Dash-Bio](https://dash.plot.ly/dash-bio), [Dash-DAQ](https://dash.plot.ly/dash-daq), [Dash-Canvas](https://dash.plot.ly/canvas) and [Dash-Cytoscape](https://dash.plot.ly/cytoscape).
 
+### Using the components
+
+Every component has a class of its own. For example dash-html-component Div has the class: [Dash::Html::Components::Div](https://metacpan.org/pod/Dash%3A%3AHtml%3A%3AComponents%3A%3ADiv) and you can use it the perl standard way:
+
+```perl
+use Dash::Html::Components::Div;
+...
+$app->layout(Dash::Html::Components::Div->new(id => 'my-div', children => 'This is a simple div'));
+```
+
+But with every component suite could be a lot of components. So to ease the task of importing them (one by one is a little bit tedious) we could use two ways:
+
+#### Factory methods
+
+Every component suite has a factory method for every component. For example [Dash::Html::Components](https://metacpan.org/pod/Dash%3A%3AHtml%3A%3AComponents) has the factory method Div to load and build a [Dash::Html::Components::Div](https://metacpan.org/pod/Dash%3A%3AHtml%3A%3AComponents%3A%3ADiv) component:
+
+```perl
+use Dash::Html::Components;
+...
+$app->layout(Dash::Html::Components->Div(id => 'my-div', children => 'This is a simple div'));
+```
+
+But this factory methods are meant to be aliased so this gets less verbose:
+
+```perl
+use aliased 'Dash::Html::Components' => 'html';
+...
+$app->layout(html->Div(id => 'my-div', children => 'This is a simple div'));
+```
+
+#### Functions
+
+Many modules use the [Exporter](https://metacpan.org/pod/Exporter) & friends to reduce typing. If you like that way every component suite gets a Functions package to import all this functions
+to your namespace.
+
+So for example for [Dash::Html::Components](https://metacpan.org/pod/Dash%3A%3AHtml%3A%3AComponents) there is a package [Dash::Html::ComponentsFunctions](https://metacpan.org/pod/Dash%3A%3AHtml%3A%3AComponentsFunctions) with one factory function to load and build the component with the same name:
+
+```perl
+use Dash::Html::ComponentsFunctions;
+...
+$app->layout(Div(id => 'my-div', children => 'This is a simple div'));
+```
+
+### I want more components
+
+There are [a lot of components... for Python](https://github.com/ucg8j/awesome-dash#component-libraries). So if you want to contribute I'll be glad to help.
+
+Meanwhile you can build your own component. I'll make a better guide and an automated builder but right now you should use [https://github.com/plotly/dash-component-boilerplate](https://github.com/plotly/dash-component-boilerplate) for all the javascript part (It's [React](https://github.com/facebook/react) based) and after that the Perl part is very easy (the components are mostly javascript, or typescript):
+
+- For every component must be a Perl class inheriting from [Dash::BaseComponent](https://metacpan.org/pod/Dash%3A%3ABaseComponent), overloaded the hash dereferencing %{} with the props that the React component has, and with this methods:
+    - DashNamespace
+
+        Namespace of the component
+
+    - \_js\_dist
+
+        Javascript dependencies for the component
+
+    - \_css\_dist
+
+        Css dependencies for the component
+
+Optionally the component suite will have the Functions package and the factory methods for ease of using.
+
+As mentioned early, I'll make an automated builder but contributions are more than welcome!!
+
+Making a component for Dash that is not React based is a little bit difficult so please first get the javascript part React based and integrating it with Perl, R or Python will be easy.
+
+# Missing parts
+
+Right now there are a lot of parts missing:
+
+- Exceptions and PreventUpdate
+- Callback context
+- Prefix mount
+- Debug mode & hot reloading
+- Dash configuration (supporting environment variables)
+- Callback dependency checking
+- Clientside functions
+- Support for component properties data-\* and aria-\*
+- Dynamic layout generation
+
+And many more, but you could use it right now to make great apps! (If you need some inspiration... just check [https://dash-gallery.plotly.host/Portal/](https://dash-gallery.plotly.host/Portal/))
+
 # STATUS
 
 At this moment this library is experimental and still under active
 development and the API is going to change!
 
 The intent of this release is to try, test and learn how to improve it.
+
+Security warning: this module is not tested for security so test yourself if you are going to run the app server in a public facing server.
 
 If you want to help, just get in contact! Every contribution is welcome!
 
@@ -129,11 +212,12 @@ If you like Dash please consider supporting them purchasing professional service
 
 # SEE ALSO
 
-[Dash](https://dash.plot.ly/)
-[Dash Repository](https://github.com/plotly/dash)
-[Chart::Plotly](https://metacpan.org/pod/Chart%3A%3APlotly)
-[Chart::GGPlot](https://metacpan.org/pod/Chart%3A%3AGGPlot)
-[Alt::Data::Frame::ButMore](https://metacpan.org/pod/Alt%3A%3AData%3A%3AFrame%3A%3AButMore)
+- [Dash](https://dash.plot.ly/)
+- [Dash Repository](https://github.com/plotly/dash)
+- [Chart::Plotly](https://metacpan.org/pod/Chart%3A%3APlotly)
+- [Chart::GGPlot](https://metacpan.org/pod/Chart%3A%3AGGPlot)
+- [Alt::Data::Frame::ButMore](https://metacpan.org/pod/Alt%3A%3AData%3A%3AFrame%3A%3AButMore)
+- [AI::MXNet](https://metacpan.org/pod/AI%3A%3AMXNet)
 
 # AUTHOR
 
@@ -148,3 +232,11 @@ This is free software, licensed under:
 ```
 The MIT (X11) License
 ```
+
+# POD ERRORS
+
+Hey! **The above document had some coding errors, which are explained below:**
+
+- Around line 258:
+
+    You forgot a '=back' before '=head1'

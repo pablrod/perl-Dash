@@ -11,11 +11,10 @@ use 5.020;
 # TODO Enable signatures?
 
 use Mojo::Base 'Mojolicious';
+use Mojo::Server::Morbo;
 use JSON;
 use Browser::Open;
 use File::ShareDir;
-# TODO Use Mojo::File (Mojo::Path) instead of Path::Tiny
-# # TODO Use Mojo::File (Mojo::Path) instead of Path::Tiny
 use Path::Tiny;
 use Dash::Renderer;
 
@@ -50,7 +49,7 @@ minor changes:
 
 =back
 
-In the SYNOPSIS you can get a taste of how this works and also in L<the examples folder of the distribution|https://metacpan.org/release/Dash> or directly in L<repository|https://github.com/pablrod/perl-Dash/tree/master/examples>
+In the SYNOPSIS you can get a taste of how this works and also in L<the examples folder of the distribution|https://metacpan.org/release/Dash> or directly in L<repository|https://github.com/pablrod/perl-Dash/tree/master/examples>. The full Dash tutorial is ported to Perl in those examples folder.
 
 =head2 Components
 
@@ -105,6 +104,67 @@ So for example for L<Dash::Html::Components> there is a package L<Dash::Html::Co
     $app->layout(Div(id => 'my-div', children => 'This is a simple div'));
 
     
+=head3 I want more components
+
+There are L<a lot of components... for Python|https://github.com/ucg8j/awesome-dash#component-libraries>. So if you want to contribute I'll be glad to help.
+
+Meanwhile you can build your own component. I'll make a better guide and an automated builder but right now you should use L<https://github.com/plotly/dash-component-boilerplate> for all the javascript part (It's L<React|https://github.com/facebook/react> based) and after that the Perl part is very easy (the components are mostly javascript, or typescript):
+
+=over 4
+
+=item * For every component must be a Perl class inheriting from L<Dash::BaseComponent>, overloaded the hash dereferencing %{} with the props that the React component has, and with this methods:
+
+=over 4
+
+=item DashNamespace
+
+Namespace of the component
+
+=item _js_dist
+
+Javascript dependencies for the component
+
+=item _css_dist
+
+Css dependencies for the component
+
+=back
+
+=back
+
+Optionally the component suite will have the Functions package and the factory methods for ease of using.
+
+As mentioned early, I'll make an automated builder but contributions are more than welcome!!
+
+Making a component for Dash that is not React based is a little bit difficult so please first get the javascript part React based and integrating it with Perl, R or Python will be easy.
+
+=head1 Missing parts
+
+Right now there are a lot of parts missing:
+
+=over 4
+
+=item * Exceptions and PreventUpdate
+
+=item * Callback context
+
+=item * Prefix mount
+
+=item * Debug mode & hot reloading
+
+=item * Dash configuration (supporting environment variables)
+
+=item * Callback dependency checking
+
+=item * Clientside functions
+
+=item * Support for component properties data-* and aria-*
+
+=item * Dynamic layout generation
+
+=back
+
+And many more, but you could use it right now to make great apps! (If you need some inspiration... just check L<https://dash-gallery.plotly.host/Portal/>)
 
 =head1 SYNOPSIS
 
@@ -203,8 +263,19 @@ sub startup {
                     push @$inputs, $rendered_input;
                 }
                 $rendered_callback->{inputs} = $inputs;
-                $rendered_callback->{'output'} =
-                  join( '.', $callback->{'Output'}{component_id}, $callback->{'Output'}{component_property} );
+                my $output_type = ref $callback->{Output};
+                if ($output_type eq 'ARRAY') {
+                    $rendered_callback->{'output'} .= '.';
+                    for my $output (@{$callback->{'Output'}}) {
+                        $rendered_callback->{'output'} .= '.' .
+                            join( '.', $output->{component_id}, $output->{component_property} ) . '..';
+                    }
+                } elsif ($output_type eq 'HASH') {
+                    $rendered_callback->{'output'} =
+                      join( '.', $callback->{'Output'}{component_id}, $callback->{'Output'}{component_property} );
+                } else {
+                    die 'Dependecy type for callback not implemented';
+                }
                 push @$dependencies, $rendered_callback;
             }
             $c->render(
@@ -246,10 +317,24 @@ sub startup {
                         }
                     }
                 }
-                my $updated_value    = $callback->{callback}(@callback_arguments);
-                my $updated_property = ( split( /\./, $request->{output} ) )[-1];
-                my $props_updated    = { $updated_property => $updated_value };
-                $c->render( json => { response => { props => $props_updated } } );
+                my $output_type = ref $callback->{Output};
+                if ($output_type eq 'ARRAY') {
+                    my @return_value = $callback->{callback}(@callback_arguments);
+                    my $props_updated = {};
+                    my $index_output = 0;
+                    for my $output (@{$callback->{'Output'}}) {
+                        $props_updated->{$output->{component_id}} = {$output->{component_property} => $return_value[$index_output]};
+                        $index_output++;
+                    }
+                    $c->render( json => { response => $props_updated , multi => JSON::true } );
+                } elsif ($output_type eq 'HASH') {
+                    my $updated_value    = $callback->{callback}(@callback_arguments);
+                    my $updated_property = ( split( /\./, $request->{output} ) )[-1];
+                    my $props_updated    = { $updated_property => $updated_value };
+                    $c->render( json => { response => { props => $props_updated } } );
+                } else {
+                    die 'Callback not supported';
+                }
             } else {
                 $c->render( json => { response => "There is no registered callbacks"} );
             }
@@ -268,8 +353,11 @@ sub run_server {
     # Opening the browser before starting the daemon works because
     #  open_browser returns inmediately
     # TODO Open browser optional
-    Browser::Open::open_browser('http://127.0.0.1:8080');
-    $self->start('daemon', '-l', 'http://*:8080');
+    if (not caller(1)) { 
+        Browser::Open::open_browser('http://127.0.0.1:8080');
+        $self->start('daemon', '-l', 'http://*:8080');
+    }
+    return $self;
 }
 
 sub _search_callback {
@@ -396,12 +484,16 @@ sub _render_scripts {
     my $rendered_scripts = "";
     $rendered_scripts .= $self->_render_dash_config();
     push @$scripts_dependencies, @{$self->_dash_renderer_js_deps()};
-    # TODO Avoid duplicates (Order?)
     my $filtered_resources = $self->_filter_resources($scripts_dependencies);
+    my %rendered = ();
     for my $dep (@$filtered_resources) {
         my $dynamic = $dep->{dynamic} // 0;
         if (! $dynamic ) {
-            $rendered_scripts .= '<script src="/' . join("/", '_dash-component-suites', $dep->{namespace}, $dep->{relative_package_path}) . '"></script>' . "\n";
+            my $resource_path_part = join("/", $dep->{namespace}, $dep->{relative_package_path});
+            if (!$rendered{$resource_path_part}) {
+                $rendered_scripts .= '<script src="/' . join("/", '_dash-component-suites', $resource_path_part) . '"></script>' . "\n";
+                $rendered{$resource_path_part} = 1;
+            } 
         }
     }
     $rendered_scripts .= $self->_render_dash_renderer_script();
@@ -512,8 +604,9 @@ development and the API is going to change!
 
 The intent of this release is to try, test and learn how to improve it.
 
-If you want to help, just get in contact! Every contribution is welcome!
+Security warning: this module is not tested for security so test yourself if you are going to run the app server in a public facing server.
 
+If you want to help, just get in contact! Every contribution is welcome!
 
 =head1 DISCLAIMER
 

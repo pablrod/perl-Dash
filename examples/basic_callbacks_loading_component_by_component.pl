@@ -1,7 +1,7 @@
 use Dash;
 use Dash::Html::Components::Div;
-use aliased 'Dash::Core::Components:Input';
-use aliased 'Dash::Core::Components:Graph';
+use aliased 'Dash::Core::Components::Input';
+use aliased 'Dash::Core::Components::Graph';
 
 my $external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css'];
 
