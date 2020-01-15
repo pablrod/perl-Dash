@@ -631,6 +631,8 @@ If you like Dash please consider supporting them purchasing professional service
 
 =item L<AI::MXNet>
 
+=back
+
 =cut
 
 __DATA__

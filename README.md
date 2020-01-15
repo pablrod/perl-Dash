@@ -232,11 +232,3 @@ This is free software, licensed under:
 ```
 The MIT (X11) License
 ```
-
-# POD ERRORS
-
-Hey! **The above document had some coding errors, which are explained below:**
-
-- Around line 258:
-
-    You forgot a '=back' before '=head1'
