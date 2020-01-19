@@ -1,4 +1,4 @@
-package Dash::Exceptions::CallbackException;
+package Dash::Exceptions::NoLayoutException;
 
 use Moo;
 

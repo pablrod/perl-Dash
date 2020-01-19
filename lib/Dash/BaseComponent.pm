@@ -13,6 +13,9 @@ sub TO_JSON {
     my @components = split(/::/, ref($self));
     my $type = $components[-1];
     my %hash = %$self;
+    if (!exists $hash{children}) {
+        $hash{children} = undef;
+    }
     return { type => $type,
         namespace => $self->DashNamespace,
         props     => \%hash

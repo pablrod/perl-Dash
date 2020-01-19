@@ -11,12 +11,13 @@ use 5.020;
 # TODO Enable signatures?
 
 use Mojo::Base 'Mojolicious';
-use Mojo::Server::Morbo;
 use JSON;
+use Scalar::Util;
 use Browser::Open;
 use File::ShareDir;
 use Path::Tiny;
 use Dash::Renderer;
+use Dash::Exceptions::NoLayoutException;
 
 # TODO Add ci badges
 
@@ -178,21 +179,52 @@ has app_name => __PACKAGE__;
 
 has external_stylesheets => sub { [] };
 
-has layout => sub { {} };
+has _layout => sub { {} };
 
-has callbacks => sub { [] };
+has _callbacks => sub { {} };
 
 has '_rendered_scripts' => "";
 
 has '_rendered_external_stylesheets' => "";
+
+sub layout {
+    my $self = shift;
+    my $layout = shift;
+    if (defined $layout) {
+        my $type = ref $layout;
+        if ($type eq 'CODE' || (Scalar::Util::blessed($layout) && $layout->isa('Dash::BaseComponent'))) { 
+            $self->_layout($layout);
+        } else {
+            Dash::Exceptions::NoLayoutException->throw('Layout must be a dash component or a function that returns a dash component');
+        }
+    } else {
+        $layout = $self->_layout;
+    }
+    return $layout;
+}
 
 sub callback {
     my $self     = shift;
     my %callback = @_;
 
     # TODO check_callback
-    push @{ $self->callbacks }, \%callback;
+    # TODO Callback map
+    my $output = $callback{Output};
+    my $callback_id = $self->_create_callback_id($output);
+    my $callbacks = $self->_callbacks;
+    $callbacks->{$callback_id} = \%callback;
     return $self;
+}
+
+sub _create_callback_id {
+    my $self = shift;
+    my $output = shift;
+
+    if (ref $output eq 'ARRAY') {
+        return ".." . join("...", map {$_->{component_id} . "." . $_->{component_property}} @$output ). "..";
+    }
+
+    return $output->{component_id} . "." . $output->{component_property};
 }
 
 sub startup {
@@ -244,40 +276,7 @@ sub startup {
     $r->get(
         '/_dash-dependencies' => sub {
             my $c            = shift;
-            my $dependencies = [];
-            for my $callback ( @{ $self->callbacks } ) {
-                my $rendered_callback = { clientside_function => JSON::null };
-                my $states             = [];
-                for my $state ( @{ $callback->{State} } ) {
-                    my $rendered_state = { id       => $state->{component_id},
-                                           property => $state->{component_property}
-                    };
-                    push @$states, $rendered_state;
-                }
-                $rendered_callback->{state} = $states;
-                my $inputs            = [];
-                for my $input ( @{ $callback->{Inputs} } ) {
-                    my $rendered_input = { id       => $input->{component_id},
-                                           property => $input->{component_property}
-                    };
-                    push @$inputs, $rendered_input;
-                }
-                $rendered_callback->{inputs} = $inputs;
-                my $output_type = ref $callback->{Output};
-                if ($output_type eq 'ARRAY') {
-                    $rendered_callback->{'output'} .= '.';
-                    for my $output (@{$callback->{'Output'}}) {
-                        $rendered_callback->{'output'} .= '.' .
-                            join( '.', $output->{component_id}, $output->{component_property} ) . '..';
-                    }
-                } elsif ($output_type eq 'HASH') {
-                    $rendered_callback->{'output'} =
-                      join( '.', $callback->{'Output'}{component_id}, $callback->{'Output'}{component_property} );
-                } else {
-                    die 'Dependecy type for callback not implemented';
-                }
-                push @$dependencies, $rendered_callback;
-            }
+            my $dependencies = $self->_dependencies();
             $c->render(
                 json => $dependencies
             );
@@ -290,54 +289,8 @@ sub startup {
 
             my $request = $c->req->json;
 
-            # Searching callbacks by 'changePropdIds'
-            my $callbacks = $self->_search_callback( $request->{'changedPropIds'} );
-            if ( scalar @$callbacks > 1 ) {
-                die 'Not implemented multiple callbacks';
-            } elsif ( scalar @$callbacks == 1 ) {
-                my $callback           = $callbacks->[0];
-                my @callback_arguments = ();
-                for my $callback_input ( @{ $callback->{Inputs} } ) {
-                    my ( $component_id, $component_property ) = @{$callback_input}{qw(component_id component_property)};
-                    for my $change_input ( @{ $request->{inputs} } ) {
-                        my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
-                        if ( $component_id eq $id && $component_property eq $property ) {
-                            push @callback_arguments, $value;
-                            last;
-                        }
-                    }
-                }
-                for my $callback_input ( @{ $callback->{State} } ) {
-                    my ( $component_id, $component_property ) = @{$callback_input}{qw(component_id component_property)};
-                    for my $change_input ( @{ $request->{state} } ) {
-                        my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
-                        if ( $component_id eq $id && $component_property eq $property ) {
-                            push @callback_arguments, $value;
-                            last;
-                        }
-                    }
-                }
-                my $output_type = ref $callback->{Output};
-                if ($output_type eq 'ARRAY') {
-                    my @return_value = $callback->{callback}(@callback_arguments);
-                    my $props_updated = {};
-                    my $index_output = 0;
-                    for my $output (@{$callback->{'Output'}}) {
-                        $props_updated->{$output->{component_id}} = {$output->{component_property} => $return_value[$index_output]};
-                        $index_output++;
-                    }
-                    $c->render( json => { response => $props_updated , multi => JSON::true } );
-                } elsif ($output_type eq 'HASH') {
-                    my $updated_value    = $callback->{callback}(@callback_arguments);
-                    my $updated_property = ( split( /\./, $request->{output} ) )[-1];
-                    my $props_updated    = { $updated_property => $updated_value };
-                    $c->render( json => { response => { props => $props_updated } } );
-                } else {
-                    die 'Callback not supported';
-                }
-            } else {
-                $c->render( json => { response => "There is no registered callbacks"} );
-            }
+            my $content = $self->_update_component($request);
+            $c->render( json => $content);
         }
     );
 
@@ -360,24 +313,107 @@ sub run_server {
     return $self;
 }
 
-sub _search_callback {
-    my $self             = shift;
-    my $changed_prop_ids = shift;
+sub _dependencies {
+    my $self         = shift;
+    my $dependencies = [];
+    for my $callback ( values %{ $self->_callbacks } ) {
+        my $rendered_callback = { clientside_function => JSON::null };
+        my $states            = [];
+        for my $state ( @{ $callback->{State} } ) {
+            my $rendered_state = { id       => $state->{component_id},
+                                   property => $state->{component_property}
+            };
+            push @$states, $rendered_state;
+        }
+        $rendered_callback->{state} = $states;
+        my $inputs = [];
+        for my $input ( @{ $callback->{Inputs} } ) {
+            my $rendered_input = { id       => $input->{component_id},
+                                   property => $input->{component_property}
+            };
+            push @$inputs, $rendered_input;
+        }
+        $rendered_callback->{inputs} = $inputs;
+        my $output_type = ref $callback->{Output};
+        if ( $output_type eq 'ARRAY' ) {
+            $rendered_callback->{'output'} .= '.';
+            for my $output ( @{ $callback->{'Output'} } ) {
+                $rendered_callback->{'output'} .=
+                  '.' . join( '.', $output->{component_id}, $output->{component_property} ) . '..';
+            }
+        } elsif ( $output_type eq 'HASH' ) {
+            $rendered_callback->{'output'} =
+              join( '.', $callback->{'Output'}{component_id}, $callback->{'Output'}{component_property} );
+        } else {
+            die 'Dependecy type for callback not implemented';
+        }
+        push @$dependencies, $rendered_callback;
+    }
+    return $dependencies;
+}
 
-    my $callbacks          = $self->callbacks;
-    my @matching_callbacks = ();
-    for my $changed_prop_id (@$changed_prop_ids) {
-        for my $callback (@$callbacks) {
-            my $inputs = $callback->{Inputs};
-            for my $input (@$inputs) {
-                if ( $changed_prop_id eq join( '.', @{$input}{qw(component_id component_property)} ) ) {
-                    push @matching_callbacks, $callback;
+sub _update_component {
+    my $self    = shift;
+    my $request = shift;
+
+    # Searching callbacks by 'changePropdIds'
+    my $callbacks = $self->_search_callback( $request->{'output'} );
+    if ( scalar @$callbacks > 1 ) {
+        die 'Not implemented multiple callbacks';
+    } elsif ( scalar @$callbacks == 1 ) {
+        my $callback           = $callbacks->[0];
+        my @callback_arguments = ();
+        for my $callback_input ( @{ $callback->{Inputs} } ) {
+            my ( $component_id, $component_property ) = @{$callback_input}{qw(component_id component_property)};
+            for my $change_input ( @{ $request->{inputs} } ) {
+                my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
+                if ( $component_id eq $id && $component_property eq $property ) {
+                    push @callback_arguments, $value;
                     last;
                 }
             }
         }
+        for my $callback_input ( @{ $callback->{State} } ) {
+            my ( $component_id, $component_property ) = @{$callback_input}{qw(component_id component_property)};
+            for my $change_input ( @{ $request->{state} } ) {
+                my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
+                if ( $component_id eq $id && $component_property eq $property ) {
+                    push @callback_arguments, $value;
+                    last;
+                }
+            }
+        }
+        my $output_type = ref $callback->{Output};
+        if ( $output_type eq 'ARRAY' ) {
+            my @return_value  = $callback->{callback}(@callback_arguments);
+            my $props_updated = {};
+            my $index_output  = 0;
+            for my $output ( @{ $callback->{'Output'} } ) {
+                $props_updated->{ $output->{component_id} } =
+                  { $output->{component_property} => $return_value[$index_output] };
+                $index_output++;
+            }
+            return { response => $props_updated, multi => JSON::true };
+        } elsif ( $output_type eq 'HASH' ) {
+            my $updated_value    = $callback->{callback}(@callback_arguments);
+            my $updated_property = ( split( /\./, $request->{output} ) )[-1];
+            my $props_updated    = { $updated_property => $updated_value };
+            return { response => { props => $props_updated } };
+        } else {
+            die 'Callback not supported';
+        }
+    } else {
+        return { response => "There is no registered callbacks" };
     }
+    return { response => "Internal error" };
+}
 
+sub _search_callback {
+    my $self             = shift;
+    my $output           = shift;
+
+    my $callbacks          = $self->_callbacks;
+    my @matching_callbacks = ($callbacks->{$output});
     return \@matching_callbacks;
 }
 
