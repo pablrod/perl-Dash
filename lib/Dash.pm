@@ -363,52 +363,56 @@ sub _update_component {
     my $self    = shift;
     my $request = shift;
 
-    # Searching callbacks by 'changePropdIds'
-    my $callbacks = $self->_search_callback( $request->{'output'} );
-    if ( scalar @$callbacks > 1 ) {
-        die 'Not implemented multiple callbacks';
-    } elsif ( scalar @$callbacks == 1 ) {
-        my $callback           = $callbacks->[0];
-        my @callback_arguments = ();
-        for my $callback_input ( @{ $callback->{Inputs} } ) {
-            my ( $component_id, $component_property ) = @{$callback_input}{qw(component_id component_property)};
-            for my $change_input ( @{ $request->{inputs} } ) {
-                my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
-                if ( $component_id eq $id && $component_property eq $property ) {
-                    push @callback_arguments, $value;
-                    last;
+    if ( scalar( values %{ $self->_callbacks } ) > 0 ) {
+        my $callbacks = $self->_search_callback( $request->{'output'} );
+        if ( scalar @$callbacks > 1 ) {
+            die 'Not implemented multiple callbacks';
+        } elsif ( scalar @$callbacks == 1 ) {
+            my $callback           = $callbacks->[0];
+            my @callback_arguments = ();
+            for my $callback_input ( @{ $callback->{Inputs} } ) {
+                my ( $component_id, $component_property ) = @{$callback_input}{qw(component_id component_property)};
+                for my $change_input ( @{ $request->{inputs} } ) {
+                    my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
+                    if ( $component_id eq $id && $component_property eq $property ) {
+                        push @callback_arguments, $value;
+                        last;
+                    }
                 }
             }
-        }
-        for my $callback_input ( @{ $callback->{State} } ) {
-            my ( $component_id, $component_property ) = @{$callback_input}{qw(component_id component_property)};
-            for my $change_input ( @{ $request->{state} } ) {
-                my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
-                if ( $component_id eq $id && $component_property eq $property ) {
-                    push @callback_arguments, $value;
-                    last;
+            for my $callback_input ( @{ $callback->{State} } ) {
+                my ( $component_id, $component_property ) = @{$callback_input}{qw(component_id component_property)};
+                for my $change_input ( @{ $request->{state} } ) {
+                    my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
+                    if ( $component_id eq $id && $component_property eq $property ) {
+                        push @callback_arguments, $value;
+                        last;
+                    }
                 }
             }
-        }
-        my $output_type = ref $callback->{Output};
-        if ( $output_type eq 'ARRAY' ) {
-            my @return_value  = $callback->{callback}(@callback_arguments);
-            my $props_updated = {};
-            my $index_output  = 0;
-            for my $output ( @{ $callback->{'Output'} } ) {
-                $props_updated->{ $output->{component_id} } =
-                  { $output->{component_property} => $return_value[$index_output] };
-                $index_output++;
+            my $output_type = ref $callback->{Output};
+            if ( $output_type eq 'ARRAY' ) {
+                my @return_value  = $callback->{callback}(@callback_arguments);
+                my $props_updated = {};
+                my $index_output  = 0;
+                for my $output ( @{ $callback->{'Output'} } ) {
+                    $props_updated->{ $output->{component_id} } =
+                      { $output->{component_property} => $return_value[$index_output] };
+                    $index_output++;
+                }
+                return { response => $props_updated, multi => JSON::true };
+            } elsif ( $output_type eq 'HASH' ) {
+                my $updated_value    = $callback->{callback}(@callback_arguments);
+                my $updated_property = ( split( /\./, $request->{output} ) )[-1];
+                my $props_updated    = { $updated_property => $updated_value };
+                return { response => { props => $props_updated } };
+            } else {
+                die 'Callback not supported';
             }
-            return { response => $props_updated, multi => JSON::true };
-        } elsif ( $output_type eq 'HASH' ) {
-            my $updated_value    = $callback->{callback}(@callback_arguments);
-            my $updated_property = ( split( /\./, $request->{output} ) )[-1];
-            my $props_updated    = { $updated_property => $updated_value };
-            return { response => { props => $props_updated } };
         } else {
-            die 'Callback not supported';
+            return { response => "There is no matching callback" };
         }
+
     } else {
         return { response => "There is no registered callbacks" };
     }
