@@ -39,9 +39,7 @@ $app->callback(
     Output => {component_id => 'cities-radio', component_property => 'value'},
     Inputs => [{component_id=>'cities-radio', component_property=> 'options'}],
     callback => sub {
-        use Data::Dumper;
         my $available_options = shift;
-        print Dumper $available_options;
         return $available_options->[0]{value};
     }
 );

@@ -16,6 +16,7 @@ use Scalar::Util;
 use Browser::Open;
 use File::ShareDir;
 use Path::Tiny;
+use Try::Tiny;
 use Dash::Renderer;
 use Dash::Exceptions::NoLayoutException;
 
@@ -288,9 +289,17 @@ sub startup {
             my $c = shift;
 
             my $request = $c->req->json;
-
-            my $content = $self->_update_component($request);
-            $c->render( json => $content);
+            try {
+                my $content = $self->_update_component($request);
+                $c->render( json => $content);
+            } catch {
+                if ( Scalar::Util::blessed $_ && $_->isa('Dash::Exceptions::PreventUpdate') ) {
+                    $c->render(status => 204, json => '');
+                }
+                else {
+                    die $_;
+                }
+            };
         }
     );
 
