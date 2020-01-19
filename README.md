@@ -4,7 +4,7 @@ Dash - Analytical Web Apps in Perl (Port of Plotly's Dash to Perl)
 
 # VERSION
 
-version 0.05
+version 0.06
 
 # SYNOPSIS
 
@@ -180,7 +180,6 @@ Making a component for Dash that is not React based is a little bit difficult so
 
 Right now there are a lot of parts missing:
 
-- Exceptions and PreventUpdate
 - Callback context
 - Prefix mount
 - Debug mode & hot reloading

@@ -146,8 +146,6 @@ Right now there are a lot of parts missing:
 
 =over 4
 
-=item * Exceptions and PreventUpdate
-
 =item * Callback context
 
 =item * Prefix mount
