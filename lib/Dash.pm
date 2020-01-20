@@ -14,7 +14,7 @@ use Mojo::Base 'Mojolicious';
 use JSON;
 use Scalar::Util;
 use Browser::Open;
-use File::ShareDir;
+use File::ShareDir 1.116;
 use Path::Tiny;
 use Try::Tiny;
 use Dash::Renderer;
@@ -204,7 +204,7 @@ sub layout {
 
 sub callback {
     my $self     = shift;
-    my %callback = @_;
+    my %callback = $self->_process_callback_arguments(@_);
 
     # TODO check_callback
     # TODO Callback map
@@ -213,6 +213,64 @@ sub callback {
     my $callbacks = $self->_callbacks;
     $callbacks->{$callback_id} = \%callback;
     return $self;
+}
+
+sub _process_callback_arguments {
+    my $self = shift;
+
+    my %callback;
+    # 1. all refs: 1 blessed, 1 array, 1 code or 2 array, 1 code 
+    #    Hash with keys Output, Inputs, callback
+    # 2.     Values content:  hashref or arrayref[hashref], arrayref[hashref], coderef
+    # 3.     Values content:  blessed output or arrayref[blessed], arrayref[blessed], coderef
+    
+    if (scalar @_ < 4) { # Unamed arguments, put names
+        my ($output_index, $input_index, $callback_index);
+        
+        my $index = 0;
+        for my $argument (@_) {
+             
+            if (ref $argument eq 'CODE') {
+                $callback_index = $index;
+            } elsif (Scalar::Util::blessed $argument)  {
+                if ($argument->isa('Dash::Dependency::Output')) {
+                    $output_index = $index;
+                }
+            } elsif (ref $argument eq 'ARRAY') {
+                # TODO check element 0 is defined
+                my $first_element = $argument->[0];
+                if (Scalar::Util::blessed $argument) {
+                    if ($argument->isa('Dash::Dependency::Output')) {
+                        $output_index = $index;
+                    } elsif ($argument->isa('Dash::Dependency::Input')) {
+                        $input_index = $index;
+                    }
+                } 
+            }
+            $index++;
+        }
+        if (! defined $output_index) {
+            die "Can't find callback output";
+        }
+        if (! defined $input_index) {
+            die "Can't find callback inputs";
+        }
+        if (! defined $callback_index) {
+            die "Can't find callback function";
+        }
+
+        $callback{Output} = $_[$output_index];
+        $callback{Inputs} = $_[$input_index];
+        $callback{callback} = $_[$callback_index];
+    } else { # Named arguments
+        # TODO check keys ¿Params::Validate or similar?
+        %callback = @_;
+    }
+
+    # Convert Output & input to hashrefs
+    # TODO
+
+    return %callback;
 }
 
 sub _create_callback_id {
