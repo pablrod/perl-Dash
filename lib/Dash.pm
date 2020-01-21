@@ -219,56 +219,89 @@ sub _process_callback_arguments {
     my $self = shift;
 
     my %callback;
-    # 1. all refs: 1 blessed, 1 array, 1 code or 2 array, 1 code 
+
+    # 1. all refs: 1 blessed, 1 array, 1 code or 2 array, 1 code
     #    Hash with keys Output, Inputs, callback
     # 2.     Values content:  hashref or arrayref[hashref], arrayref[hashref], coderef
     # 3.     Values content:  blessed output or arrayref[blessed], arrayref[blessed], coderef
-    
-    if (scalar @_ < 4) { # Unamed arguments, put names
-        my ($output_index, $input_index, $callback_index);
-        
+
+    if ( scalar @_ < 5 ) {    # Unamed arguments, put names
+        my ( $output_index, $input_index, $state_index, $callback_index );
+
         my $index = 0;
         for my $argument (@_) {
-             
-            if (ref $argument eq 'CODE') {
+            my $type = ref $argument;
+            if ( $type eq 'CODE' ) {
                 $callback_index = $index;
-            } elsif (Scalar::Util::blessed $argument)  {
-                if ($argument->isa('Dash::Dependency::Output')) {
+            } elsif ( Scalar::Util::blessed $argument) {
+                if ( $argument->isa('Dash::Dependencies::Output') ) {
                     $output_index = $index;
                 }
-            } elsif (ref $argument eq 'ARRAY') {
-                # TODO check element 0 is defined
-                my $first_element = $argument->[0];
-                if (Scalar::Util::blessed $argument) {
-                    if ($argument->isa('Dash::Dependency::Output')) {
-                        $output_index = $index;
-                    } elsif ($argument->isa('Dash::Dependency::Input')) {
-                        $input_index = $index;
+            } elsif ( $type eq 'ARRAY' ) {
+                if ( scalar @$argument > 0 ) {
+                    my $first_element = $argument->[0];
+                    if ( Scalar::Util::blessed $first_element) {
+                        if ( $first_element->isa('Dash::Dependencies::Output') ) {
+                            $output_index = $index;
+                        } elsif ( $first_element->isa('Dash::Dependencies::Input') ) {
+                            $input_index = $index;
+                        } elsif ( $first_element->isa('Dash::Dependencies::State') ) {
+                            $state_index = $index;
+                        }
                     }
-                } 
+                } else {
+                    die "Can't use empty arrayrefs as arguments";
+                }
+            } elsif ( $type eq 'SCALAR') {
+                die "Can't mix scalarref arguments with objects when not using named paremeters. Please use named parameters for all arguments or classes for all arguments";
+            } elsif ( $type eq 'HASH') {
+                die "Can't mix hashref arguments with objects when not using named parameters. Please use named parameters for all arguments or classes for all arguments";
+            } elsif ( $type eq '') {
+                die "Can't mix scalar arguments with objects when not using named parameters. Please use named parameters for all arguments or classes for all arguments";
             }
             $index++;
         }
-        if (! defined $output_index) {
+        if ( !defined $output_index ) {
             die "Can't find callback output";
         }
-        if (! defined $input_index) {
+        if ( !defined $input_index ) {
             die "Can't find callback inputs";
         }
-        if (! defined $callback_index) {
+        if ( !defined $callback_index ) {
             die "Can't find callback function";
         }
 
-        $callback{Output} = $_[$output_index];
-        $callback{Inputs} = $_[$input_index];
+        $callback{Output}   = $_[$output_index];
+        $callback{Inputs}   = $_[$input_index];
         $callback{callback} = $_[$callback_index];
-    } else { # Named arguments
+        if (defined $state_index) {
+            $callback{State} = $_[$state_index];
+        }
+    } else {    # Named arguments
         # TODO check keys ¿Params::Validate or similar?
         %callback = @_;
     }
 
     # Convert Output & input to hashrefs
-    # TODO
+    for my $key (keys %callback) {
+        my $value = $callback{$key};
+
+        if ( ref $value eq 'ARRAY' ) {
+            my @hashes;
+            for my $dependency (@$value) {
+                if (Scalar::Util::blessed $dependency) {
+                    my %dependency_hash = %$dependency;
+                    push @hashes, \%dependency_hash;
+                } else {
+                    push @hashes, $dependency;
+                }
+            }
+            $callback{$key} = \@hashes;
+        } elsif ( Scalar::Util::blessed $value) {
+            my %dependency_hash = %$value;
+            $callback{$key} = \%dependency_hash;
+        }
+    }
 
     return %callback;
 }
