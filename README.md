@@ -21,7 +21,7 @@ my $app = Dash->new(
 );
 
 $app->layout(
-    html->Div(children => [
+    html->Div([
         dcc->Input(id => 'my-id', value => 'initial value', type => 'text'),
         html->Div(id => 'my-div')
     ])

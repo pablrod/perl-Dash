@@ -1,3 +1,4 @@
+  -Support for using children without name when it's the first parameter
 0.06 2020-01-21 22:00:00+0000
   -Support for creating dependencies with objects and support for aliased & imported functions (same as components)
 0.06 2020-01-19 22:00:00+0000
