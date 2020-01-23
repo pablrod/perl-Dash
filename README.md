@@ -4,7 +4,7 @@ Dash - Analytical Web Apps in Perl (Port of Plotly's Dash to Perl)
 
 # VERSION
 
-version 0.08
+version 0.09
 
 # SYNOPSIS
 
@@ -94,6 +94,7 @@ minor changes:
 - Main package and class for apps is Dash
 - Component suites will use Perl package convention, I mean: dash\_html\_components will be Dash::Html::Components, although for new component suites you could use whatever package name you like
 - Instead of decorators we'll use plain old callbacks
+- Callback context is available as the last parameter of the callback but without the response part
 - Instead of Flask we'll be using [Mojolicious](https://metacpan.org/pod/Mojolicious) (Maybe in the future [Dancer2](https://metacpan.org/pod/Dancer2))
 
 In the SYNOPSIS you can get a taste of how this works and also in [the examples folder of the distribution](https://metacpan.org/release/Dash) or directly in [repository](https://github.com/pablrod/perl-Dash/tree/master/examples). The full Dash tutorial is ported to Perl in those examples folder.
@@ -180,7 +181,6 @@ Making a component for Dash that is not React based is a little bit difficult so
 
 Right now there are a lot of parts missing:
 
-- Callback context
 - Prefix mount
 - Debug mode & hot reloading
 - Dash configuration (supporting environment variables)

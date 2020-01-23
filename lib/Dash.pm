@@ -47,6 +47,8 @@ minor changes:
 
 =item * Instead of decorators we'll use plain old callbacks
 
+=item * Callback context is available as the last parameter of the callback but without the response part
+
 =item * Instead of Flask we'll be using L<Mojolicious> (Maybe in the future L<Dancer2>)
 
 =back
@@ -145,8 +147,6 @@ Making a component for Dash that is not React based is a little bit difficult so
 Right now there are a lot of parts missing:
 
 =over 4
-
-=item * Callback context
 
 =item * Prefix mount
 
@@ -461,12 +461,14 @@ sub _update_component {
         } elsif ( scalar @$callbacks == 1 ) {
             my $callback           = $callbacks->[0];
             my @callback_arguments = ();
+            my $callback_context   = {};
             for my $callback_input ( @{ $callback->{Inputs} } ) {
                 my ( $component_id, $component_property ) = @{$callback_input}{qw(component_id component_property)};
                 for my $change_input ( @{ $request->{inputs} } ) {
                     my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
                     if ( $component_id eq $id && $component_property eq $property ) {
                         push @callback_arguments, $value;
+                        $callback_context->{inputs}{$id . "." . $property} = $value;
                         last;
                     }
                 }
@@ -477,10 +479,21 @@ sub _update_component {
                     my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
                     if ( $component_id eq $id && $component_property eq $property ) {
                         push @callback_arguments, $value;
+                        $callback_context->{states}{$id . "." . $property} = $value;
                         last;
                     }
                 }
             }
+
+            $callback_context->{triggered} = [];
+            for my $triggered_input ( @{ $request->{changedPropIds} }) {
+                push @{$callback_context->{triggered}}, {
+                    prop_id => $triggered_input, 
+                    value => $callback_context->{inputs}{$triggered_input}
+                };
+            }
+            push @callback_arguments, $callback_context;
+
             my $output_type = ref $callback->{Output};
             if ( $output_type eq 'ARRAY' ) {
                 my @return_value  = $callback->{callback}(@callback_arguments);
