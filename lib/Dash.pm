@@ -1,7 +1,7 @@
 package Dash;
 
-use strict;
-use warnings;
+use Moo;
+use strictures 2;
 use 5.020;
 
 # VERSION
@@ -10,16 +10,15 @@ use 5.020;
 
 # TODO Enable signatures?
 
-use Mojo::Base 'Mojolicious';
 use JSON;
 use Scalar::Util;
 use Browser::Open;
-use File::ShareDir 1.116;
 use Path::Tiny;
-use Try::Tiny;
 use Dash::Renderer;
 use Dash::Config;
 use Dash::Exceptions::NoLayoutException;
+use Dash::Backend::Mojolicious::App;
+use namespace::clean;
 
 # TODO Add ci badges
 
@@ -35,7 +34,7 @@ Dash makes building analytical web applications very easy. No JavaScript require
 
 It's a great way to put a nice interactive web interface to your data analysis application 
 without having to make a javascript interface and without having to setup servers or web frameworks.
-The tipycal use case is you just have new data to your ML/AI model and you want to explore
+The typical use case is you just have new data to your ML/AI model and you want to explore
 diferent ways of training or just visualize the results of different parameter configurations.
 
 =head1 Basics
@@ -308,19 +307,45 @@ And it will start a server on port 8080 and open a browser to start using your a
 
 =cut
 
-has app_name => __PACKAGE__;
+has app_name => (
+    is => 'ro',
+    default => __PACKAGE__
+);
 
-has external_stylesheets => sub { [] };
+has external_stylesheets => (
+    is => 'rw',
+    default => sub { [] }
+);
 
-has _layout => sub { {} };
+has _layout => (
+    is => 'rw',
+    default => sub { {} }
+);
 
-has _callbacks => sub { {} };
+has _callbacks => (
+    is => 'rw',
+    default => sub { {} }
+);
 
-has '_rendered_scripts' => "";
+has _rendered_scripts => (
+    is => 'rw',
+    default => ""
+);
 
-has '_rendered_external_stylesheets' => "";
+has _rendered_external_stylesheets => (
+    is => 'rw',
+    default => ""
+);
 
-has 'config' => sub { Dash::Config->new() };
+has backend => (
+    is => 'rw',
+    default => sub { Dash::Backend::Mojolicious::App->new(dash_app => shift) }
+);
+
+has config => (
+    is => 'rw',
+    default => sub { Dash::Config->new() }
+);
 
 sub layout {
     my $self = shift;
@@ -453,98 +478,21 @@ sub _create_callback_id {
     return $output->{component_id} . "." . $output->{component_property};
 }
 
-sub startup {
-    my $self = shift;
-
-    my $renderer = $self->renderer;
-    push @{ $renderer->classes }, __PACKAGE__;
-
-
-    my $r = $self->routes;
-    $r->get(
-        '/' => sub {
-            my $c = shift;
-            $c->stash(
-                stylesheets => $self->_rendered_stylesheets,
-                external_stylesheets => $self->_rendered_external_stylesheets,
-                scripts => $self->_rendered_scripts,
-                title => $self->app_name);
-            $c->render( template => 'index' );
-        }
-    );
-
-    my $dist_name = 'Dash';
-    $r->get('/_dash-component-suites/:namespace/*asset' => sub {
-            # TODO Component registry to find assets file in other dists
-            my $c = shift;
-            my $file = $self->_filename_from_file_with_fingerprint($c->stash('asset'));
-
-            $c->reply->file(File::ShareDir::dist_file($dist_name, Path::Tiny::path('assets', $c->stash('namespace'), $file)->canonpath ));
-        } 
-    );
-
-    $r->get(
-        '/_favicon.ico' => sub {
-            my $c = shift;
-            $c->reply->file( File::ShareDir::dist_file($dist_name, 'favicon.ico'));
-        }
-    );
-
-    $r->get(
-        '/_dash-layout' => sub {
-            my $c = shift;
-            $c->render(
-                        json => $self->layout()
-            );
-        }
-    );
-
-    $r->get(
-        '/_dash-dependencies' => sub {
-            my $c            = shift;
-            my $dependencies = $self->_dependencies();
-            $c->render(
-                json => $dependencies
-            );
-        }
-    );
-
-    $r->post(
-        '/_dash-update-component' => sub {
-            my $c = shift;
-
-            my $request = $c->req->json;
-            try {
-                my $content = $self->_update_component($request);
-                $c->render( json => $content);
-            } catch {
-                if ( Scalar::Util::blessed $_ && $_->isa('Dash::Exceptions::PreventUpdate') ) {
-                    $c->render(status => 204, json => '');
-                }
-                else {
-                    die $_;
-                }
-            };
-        }
-    );
-
-    return $self;
-}
-
 sub run_server {
     my $self = shift;
 
     $self->_render_and_cache_scripts();
     $self->_render_and_cache_external_stylesheets();
 
+    $self->backend->dash_app($self);
     # Opening the browser before starting the daemon works because
     #  open_browser returns inmediately
     # TODO Open browser optional
     if (not caller(1)) { 
         Browser::Open::open_browser('http://127.0.0.1:8080');
-        $self->start('daemon', '-l', 'http://*:8080');
+        $self->backend->start('daemon', '-l', 'http://*:8080');
     }
-    return $self;
+    return $self->backend;
 }
 
 sub _dependencies {
