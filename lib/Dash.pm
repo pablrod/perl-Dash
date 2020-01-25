@@ -18,6 +18,7 @@ use File::ShareDir 1.116;
 use Path::Tiny;
 use Try::Tiny;
 use Dash::Renderer;
+use Dash::Config;
 use Dash::Exceptions::NoLayoutException;
 
 # TODO Add ci badges
@@ -28,32 +29,61 @@ use Dash::Exceptions::NoLayoutException;
 
 =head1 DESCRIPTION
 
-This package is a port of L<Plotly's Dash|https://dash.plot.ly/> to Perl. As
-the official Dash doc says: I<Dash is a productive Python framework for building web applications>. 
-So this Perl package is a humble atempt to ease the task of building data visualization web apps in Perl.
+This package is a port of L<Plotly's Dash|https://dash.plot.ly/> to Perl.
 
-The ultimate goal of course is to support everything that the Python version supports.
+Dash makes building analytical web applications very easy. No JavaScript required.
 
-The use will follow, as close as possible, the Python version of Dash so the Python doc can be used with
-minor changes:
+It's a great way to put a nice interactive web interface to your data analysis application 
+without having to make a javascript interface and without having to setup servers or web frameworks.
+The tipycal use case is you just have new data to your ML/AI model and you want to explore
+diferent ways of training or just visualize the results of different parameter configurations.
+
+=head1 Basics
+
+The main parts of a Dash App are:
 
 =over 4
 
-=item * Use of -> (arrow operator) instead of .
+=item Layout
 
-=item * Main package and class for apps is Dash
+Declarative part of the app where you specify the view. This layout is composed of components arranged in a hierarchy, just like html. 
+This components are available as component suites (for example: L<Dash::Html::Components>, L<Dash::Core::Components>, ...) 
+and they can be simple html elements (for example L<Dash::Html::Components::H1>) or as complex as you want like
+L<Dash::Core::Components::Graph> that is a charting component based on L<Plotly.js|https://plot.ly/javascript/>.
+Most of the time you'll be using Dash Components already built and ready to use.
 
-=item * Component suites will use Perl package convention, I mean: dash_html_components will be Dash::Html::Components, although for new component suites you could use whatever package name you like
+=item Callbacks
 
-=item * Instead of decorators we'll use plain old callbacks
+This is the Perl code that gets executed when some component changes 
+and the result of this execution another component (or components) gets updated.
+Every callback declares a set of inputs, a set of outputs and optionally a set of "state" inputs. 
+All inputs, outputs and "state" inputs are known as callback dependencies. Every dependency is related to 
+some property of some component, so the inputs determine that if a property of a component declared as input
+in a callback will trigger that callback, and the output returned by the callback will update the property of
+the component declared as output.
 
-=item * Callback context is available as the last parameter of the callback but without the response part
+=back 
 
-=item * Instead of Flask we'll be using L<Mojolicious> (Maybe in the future L<Dancer2>)
+So to make a Dash app you just need to setup the layout and the callbacks. The basic skeleton will be:
 
-=back
+    my $app = Dash->new(app_name => 'My Perl Dash App'); 
+    $app->layout(...);
+    $app->callback(...);
+    $app->run_server();
 
-In the SYNOPSIS you can get a taste of how this works and also in L<the examples folder of the distribution|https://metacpan.org/release/Dash> or directly in L<repository|https://github.com/pablrod/perl-Dash/tree/master/examples>. The full Dash tutorial is ported to Perl in those examples folder.
+In the SYNOPSIS you can get a taste of how this works and also in L<the examples folder of the distribution|https://metacpan.org/release/Dash>
+
+=head1 Layout
+
+The layout is the declarative part of the app and its the DOM of our app. The root element can be any component,
+and after the root element is done the rest are "children" of this root component, that is they are the value of
+the children property of the parent component and children can be one "thing" (text, component, whatever as long as can be converted to JSON)
+or an arrayref of "things". So the components can be composed as much as you want. For example:
+
+    $app->layout(html->Div(children => [
+            html->H1(children => 'Making Perl Dash Apps'),
+            html->Img(src => 'https://raw.githubusercontent.com/kraih/perl-raptor/master/example.png' )
+        ]));
 
 =head2 Components
 
@@ -61,9 +91,9 @@ This package ships the following component suites and are ready to use:
 
 =over 4
 
-=item * L<Dash Core Components|https://dash.plot.ly/dash-core-components> as Dash::Core::Components
+=item * L<Dash Core Components|https://dash.plot.ly/dash-core-components> as Dash::Core::Components. Main components for interactive analytical web apps: forms and charting
 
-=item * L<Dash Html Components|https://dash.plot.ly/dash-html-components> as Dash::Html::Components
+=item * L<Dash Html Components|https://dash.plot.ly/dash-html-components> as Dash::Html::Components. Basically the html elements.
 
 =item * L<Dash DataTable|https://dash.plot.ly/datatable> as Dash::Table
 
@@ -83,88 +113,192 @@ But with every component suite could be a lot of components. So to ease the task
 
 =head4 Factory methods
 
-Every component suite has a factory method for every component. For example L<Dash::Html::Components> has the factory method Div to load and build a L<Dash::Html::Components::Div> component:
+Every component suite has a factory method for every component. And using this factory methods children keyword is optional as long as the children is the first element.
+For example L<Dash::Html::Components> has the factory method Div to load and build a L<Dash::Html::Components::Div> component:
 
     use Dash::Html::Components;
     ...
     $app->layout(Dash::Html::Components->Div(id => 'my-div', children => 'This is a simple div'));
+    # same as
+    $app->layout(Dash::Html::Components->Div('This is a simple div', id => 'my-div');
 
 But this factory methods are meant to be aliased so this gets less verbose:
 
     use aliased 'Dash::Html::Components' => 'html';
     ...
     $app->layout(html->Div(id => 'my-div', children => 'This is a simple div'));
+    # same as
+    $app->layout(html->Div('This is a simple div', id => 'my-div'));
 
 
 =head4 Functions
 
 Many modules use the L<Exporter> & friends to reduce typing. If you like that way every component suite gets a Functions package to import all this functions
-to your namespace.
+to your namespace. Using this functions also allows for ommiting the children keyword if the children is the first element.
 
 So for example for L<Dash::Html::Components> there is a package L<Dash::Html::ComponentsFunctions> with one factory function to load and build the component with the same name:
 
     use Dash::Html::ComponentsFunctions;
     ...
     $app->layout(Div(id => 'my-div', children => 'This is a simple div'));
+    # same as
+    $app->layout(Div('This is a simple div', id => 'my-div'));
 
-    
-=head3 I want more components
+=head1 Callbacks
 
-There are L<a lot of components... for Python|https://github.com/ucg8j/awesome-dash#component-libraries>. So if you want to contribute I'll be glad to help.
+Callbacks are the reactive part of the web app. They listen to changes in properties of components and get fired by those changes.
+The output of the callbacks can update properties for other componentes (or different properties for the same components) and
+potentially firing other callbacks. So your app is "reacting" to changes. These properties that fire changes and the properties 
+that get updated are dependencies of the callback, they are the "links" between components and callbacks.
 
-Meanwhile you can build your own component. I'll make a better guide and an automated builder but right now you should use L<https://github.com/plotly/dash-component-boilerplate> for all the javascript part (It's L<React|https://github.com/facebook/react> based) and after that the Perl part is very easy (the components are mostly javascript, or typescript):
+Every component that is expected to fire a callback must have a unique id property.
 
-=over 4
-
-=item * For every component must be a Perl class inheriting from L<Dash::BaseComponent>, overloaded the hash dereferencing %{} with the props that the React component has, and with this methods:
-
-=over 4
-
-=item DashNamespace
-
-Namespace of the component
-
-=item _js_dist
-
-Javascript dependencies for the component
-
-=item _css_dist
-
-Css dependencies for the component
-
-=back
-
-=back
-
-Optionally the component suite will have the Functions package and the factory methods for ease of using.
-
-As mentioned early, I'll make an automated builder but contributions are more than welcome!!
-
-Making a component for Dash that is not React based is a little bit difficult so please first get the javascript part React based and integrating it with Perl, R or Python will be easy.
-
-=head1 Missing parts
-
-Right now there are a lot of parts missing:
+To define a callback is necessary at least:
 
 =over 4
 
-=item * Prefix mount
+=item Inputs
 
-=item * Debug mode & hot reloading
+The component property (or components properties) which fire the callback on every change. The values of this properties are inputs for the callbacks
 
-=item * Dash configuration (supporting environment variables)
+=item Output
 
-=item * Callback dependency checking
+The component (or components) whose property (or properties) get updated
 
-=item * Clientside functions
+=item callback
 
-=item * Support for component properties data-* and aria-*
-
-=item * Dynamic layout generation
+The code that gets executed
 
 =back
 
-And many more, but you could use it right now to make great apps! (If you need some inspiration... just check L<https://dash-gallery.plotly.host/Portal/>)
+A minimun callback will be:
+
+    $app->callback(
+        Output => {component_id => 'my-div', component_property => 'children'},
+        Inputs => [{component_id=>'my-id', component_property=> 'value'}],
+        callback => sub {
+            my $input_value = shift;
+            return "You've entered '$input_value'";
+        }
+    );
+
+
+=head2 Dependencies
+
+Dependencies "link" components and callbacks. Every callback dependency has the following attributes:
+
+=over 4
+
+=item component_id
+
+Value of the id property for the component
+
+=item component_property
+
+Name of the property
+
+=back
+
+=head3 Inputs
+
+A callback can have one or more inputs and for every input declared for a callback the value
+of the property will be a parameter for the callback in the same order as the input dependencies are declared.
+
+=head3 Outputs
+
+A callback can have one or more output dependencies. When there is only one
+output the value returned by the callback updates the value of the property of the component.
+In the second case the output of the callback has to be a list
+in the list returned will be mapped one by one to the outputs in the same order as the output dependencies are declared.
+
+=head3 State
+
+Apart from Inputs, a callback could need the value of other properties of other components but without 
+firing the callback. State dependencies are for this case. So for every state dependency declared for a callback
+the value os the property will be a parameter for the callback in the same order the state dependencies are declared
+but after all inputs. 
+
+=head3 Dependencies using objects
+
+Dependencies can be declared using just a hash reference but the preferred way is using the classes and factory methods and functions as with the components.
+
+Using objects:
+
+    use Dash::Dependencies::Input;
+    use Dash::Dependencies::Output;
+    ...
+    $app->callback(
+        Output => Dash::Dependencies::Output->new(component_id => 'my-div', component_property => 'children'),
+        Inputs => [Dash::Dependencies::Input->new(component_id=>'my-id', component_property=> 'value')],
+        callback => sub {
+            my $input_value = shift;
+            return "You've entered '$input_value'";
+        }
+    );
+
+Using objects allows to omit the keyword arguments:
+
+
+    use Dash::Dependencies::Input;
+    use Dash::Dependencies::Output;
+    ...
+    $app->callback(
+        Dash::Dependencies::Output->new(component_id => 'my-div', component_property => 'children'),
+        [Dash::Dependencies::Input->new(component_id=>'my-id', component_property=> 'value')],
+        sub {
+            my $input_value = shift;
+            return "You've entered '$input_value'";
+        }
+    );
+
+There are also factory methods to use this dependencies, which allows to omit the keyword arguments:
+
+    use Dash::Dependencies;
+    ...
+    $app->callback(
+        Dash::Dependencies->Output('my-div', 'children'),
+        [Dash::Dependencies->Input(component_id=>'my-id', component_property=> 'value')],
+        sub {
+            my $input_value = shift;
+            return "You've entered '$input_value'";
+        }
+    );
+
+This can be aliased
+
+    use aliased 'Dash::Dependencies' => 'deps';
+    ...
+    $app->callback(
+        deps->Output(component_id => 'my-div', component_property => 'children'),
+        [deps->Input('my-id', 'value')],
+        sub {
+            my $input_value = shift;
+            return "You've entered '$input_value'";
+        }
+    );
+
+But if you prefer using just functions in you namespace:
+
+    use Dash::DependenciesFunctions;
+    ...
+    $app->callback(
+        Output('my-div', 'children'),
+        [Input(component_id=>'my-id', component_property=> 'value')],
+        sub {
+            my $input_value = shift;
+            return "You've entered '$input_value'";
+        }
+    );
+
+
+
+=head1 Running App
+
+The last step is running the app. Just call: 
+
+    $app->run_server();
+
+And it will start a server on port 8080 and open a browser to start using your app!
 
 =head1 SYNOPSIS
 
@@ -185,6 +319,8 @@ has _callbacks => sub { {} };
 has '_rendered_scripts' => "";
 
 has '_rendered_external_stylesheets' => "";
+
+has 'config' => sub { Dash::Config->new() };
 
 sub layout {
     my $self = shift;
@@ -559,8 +695,10 @@ sub _render_and_cache_scripts {
 }
 
 sub _render_dash_config {
+    my $self = shift;
+    my $json = JSON->new->utf8->allow_blessed->convert_blessed; 
     return
-            '<script id="_dash-config" type="application/json">{"url_base_pathname": null, "requests_pathname_prefix": "/", "ui": false, "props_check": false, "show_undo_redo": false}</script>';
+            '<script id="_dash-config" type="application/json">' . $json->encode($self->config) . '</script>';
 }
 
 sub _dash_renderer_js_dependencies {
@@ -748,16 +886,97 @@ sub _filename_from_file_with_fingerprint {
 
 1;
 
+=head1 Making new components
+
+There are L<a lot of components... for Python|https://github.com/ucg8j/awesome-dash#component-libraries>. So if you want to contribute I'll be glad to help.
+
+Meanwhile you can build your own component. I'll make a better guide and an automated builder but right now you should use L<https://github.com/plotly/dash-component-boilerplate> for all the javascript part (It's L<React|https://github.com/facebook/react> based) and after that the Perl part is very easy (the components are mostly javascript, or typescript):
+
+=over 4
+
+=item * For every component must be a Perl class inheriting from L<Dash::BaseComponent>, overloading the hash dereferencing %{} with the props that the React component has (check L<Dash::BaseComponent> TO_JSON method), and with this methods:
+
+=over 4
+
+=item DashNamespace
+
+Namespace of the component
+
+=item _js_dist
+
+Javascript dependencies for the component
+
+=item _css_dist
+
+Css dependencies for the component
+
+=back
+
+=back
+
+Optionally the component suite will have the Functions package and the factory methods for ease of using.
+
+Then you just have to publish the component suite as a Perl package. For new component suites you could use whatever package name you like, but if you want to use Dash:: namespace please use Dash::Components:: to avoid future collisions with further development. Besides this will make easier to find more components.
+
+As mentioned early, I'll make an automated builder but contributions are more than welcome!! In the meantime please check L<CONTRIBUTING.md|https://github.com/pablrod/perl-Dash/blob/CONTRIBUTING.md>
+
+Making a component for Dash that is not React based is a little bit difficult so please first get the javascript part React based and after that, integrating it with Perl, R or Python will be easy.
+
 =head1 STATUS
 
 At this moment this library is experimental and still under active
 development and the API is going to change!
 
-The intent of this release is to try, test and learn how to improve it.
+The ultimate goal of course is to support everything that the Python and R versions supports.
 
-Security warning: this module is not tested for security so test yourself if you are going to run the app server in a public facing server.
+The use will follow the Python version of Dash, as close as possible, so the Python doc can be used with
+minor changes:
 
-If you want to help, just get in contact! Every contribution is welcome!
+=over 4
+
+=item * Use of -> (arrow operator) instead of .
+
+=item * Main package and class for apps is Dash
+
+=item * Component suites will use Perl package convention, I mean: dash_html_components will be Dash::Html::Components
+
+=item * Instead of decorators we'll use plain old callbacks
+
+=item * Callback context is available as the last parameter of the callback but without the response part
+
+=item * Instead of Flask we'll be using L<Mojolicious> (Maybe in the future L<Dancer2>)
+
+=back
+
+In the SYNOPSIS you can get a taste of how this works and also in L<the examples folder of the distribution|https://metacpan.org/release/Dash> or directly in L<repository|https://github.com/pablrod/perl-Dash/tree/master/examples>. The full Dash tutorial is ported to Perl in those examples folder.
+
+=head2 Missing parts
+
+Right now there are a lot of parts missing:
+
+=over 4
+
+=item * Prefix mount
+
+=item * Debug mode & hot reloading
+
+=item * Dash configuration (supporting environment variables)
+
+=item * Callback dependency checking
+
+=item * Clientside functions
+
+=item * Support for component properties data-* and aria-*
+
+=item * Dynamic layout generation
+
+=back
+
+And many more, but you could use it right now to make great apps! (If you need some inspiration... just check L<https://dash-gallery.plotly.host/Portal/>)
+
+=head2 Security
+
+B<Warning>: this module is not tested for security so test yourself if you are going to run the app server in a public facing server.
 
 =head1 DISCLAIMER
 
