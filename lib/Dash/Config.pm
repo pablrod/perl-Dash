@@ -30,9 +30,17 @@ has show_undo_redo => (
     default => sub {JSON::false}
 );
 
+has hot_reload => (
+    is => 'rw'
+);
+
+has name => (
+    is => 'rw'
+);
+
 sub TO_JSON {
     my $self = shift;
-    my %hash = %$self;
+    my %hash = map {$_ =>$self->{$_}} qw(url_base_pathname requests_pathname_prefix ui props_check show_undo_redo hot_reload);
     return \%hash;
 }
 

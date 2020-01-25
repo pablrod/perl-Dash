@@ -484,7 +484,6 @@ sub run_server {
     $self->_render_and_cache_scripts();
     $self->_render_and_cache_external_stylesheets();
 
-    $self->backend->dash_app($self);
     # Opening the browser before starting the daemon works because
     #  open_browser returns inmediately
     # TODO Open browser optional
@@ -952,38 +951,4 @@ If you like Dash please consider supporting them purchasing professional service
 =back
 
 =cut
-
-__DATA__
-
-@@ index.html.ep
-% layout 'default';
-% title 'Renderer';
-<div id="react-entry-point">
-    <div class="_dash-loading">
-        Loading...
-    </div>
-</div>
-
-        <footer>
-            <%== $scripts %>
-        </footer>
-
-
-@@ layouts/default.html.ep
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-      <meta charset="UTF-8">
-        <title><%= $title %></title>
-        <link rel="icon" type="image/x-icon" href="/_favicon.ico?v=1.7.0">
-        <%== $stylesheets %>
-        <%== $external_stylesheets %>
-    </head>
-    <body>
-        
-  <%= content %>
-    </body>
-</html>
-
 
