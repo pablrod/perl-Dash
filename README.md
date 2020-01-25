@@ -12,6 +12,7 @@ version 0.09
 use Dash;
 use aliased 'Dash::Html::Components' => 'html';
 use aliased 'Dash::Core::Components' => 'dcc';
+use aliased 'Dash::Dependencies' => 'deps';
 
 my $external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css'];
 
@@ -28,9 +29,9 @@ $app->layout(
 );
 
 $app->callback(
-    Output => {component_id => 'my-div', component_property => 'children'},
-    Inputs => [{component_id=>'my-id', component_property=> 'value'}],
-    callback => sub {
+    deps->Output('my-div', 'children'),
+    [deps->Input('my-id', 'value')],
+    sub {
         my $input_value = shift;
         return "You've entered '$input_value'";
     }
@@ -87,7 +88,7 @@ Dash makes building analytical web applications very easy. No JavaScript require
 
 It's a great way to put a nice interactive web interface to your data analysis application 
 without having to make a javascript interface and without having to setup servers or web frameworks.
-The tipycal use case is you just have new data to your ML/AI model and you want to explore
+The typical use case is you just have new data to your ML/AI model and you want to explore
 diferent ways of training or just visualize the results of different parameter configurations.
 
 # Basics
