@@ -4,7 +4,7 @@ Dash - Analytical Web Apps in Perl (Port of Plotly's Dash to Perl)
 
 # VERSION
 
-version 0.09
+version 0.10
 
 # SYNOPSIS
 

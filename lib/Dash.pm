@@ -592,12 +592,12 @@ sub _update_component {
                 my $index_output  = 0;
                 my $some_updated  = 0;     
                 for my $output ( @{ $callback->{'Output'} } ) {
-                    if (!(Scalar::Util::blessed($output) && $output->isa('Dash::Internal::NoUpdate'))) {
+                    my $output_value = $return_value[$index_output++];
+                    if (!(Scalar::Util::blessed($output_value) && $output_value->isa('Dash::Internal::NoUpdate'))) {
                         $props_updated->{ $output->{component_id} } =
-                            { $output->{component_property} => $return_value[$index_output] };
+                            { $output->{component_property} => $output_value };
                         $some_updated = 1;
                     }
-                    $index_output++;
                 }
                 if ($some_updated) {
                     return { response => $props_updated, multi => JSON::true };
