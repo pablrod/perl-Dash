@@ -236,7 +236,7 @@ Using objects:
         }
     );
 
-Using objects allows to omit the keyword arguments:
+Using objects allows to omit the keyword arguments in the callback method:
 
 
     use Dash::Dependencies::Input;
@@ -251,7 +251,7 @@ Using objects allows to omit the keyword arguments:
         }
     );
 
-There are also factory methods to use this dependencies, which allows to omit the keyword arguments:
+There are also factory methods to use this dependencies, which allows to omit the keyword arguments for the dependencies:
 
     use Dash::Dependencies;
     ...
@@ -277,7 +277,7 @@ This can be aliased
         }
     );
 
-But if you prefer using just functions in you namespace:
+But if you prefer using just functions in your namespace:
 
     use Dash::DependenciesFunctions;
     ...
@@ -884,7 +884,7 @@ Optionally the component suite will have the Functions package and the factory m
 
 Then you just have to publish the component suite as a Perl package. For new component suites you could use whatever package name you like, but if you want to use Dash:: namespace please use Dash::Components:: to avoid future collisions with further development. Besides this will make easier to find more components.
 
-As mentioned early, I'll make an automated builder but contributions are more than welcome!! In the meantime please check L<CONTRIBUTING.md|https://github.com/pablrod/perl-Dash/blob/CONTRIBUTING.md>
+As mentioned early, I'll make an automated builder but contributions are more than welcome!! In the meantime please check L<CONTRIBUTING.md|https://github.com/pablrod/perl-Dash/blob/master/CONTRIBUTING.md>
 
 Making a component for Dash that is not React based is a little bit difficult so please first get the javascript part React based and after that, integrating it with Perl, R or Python will be easy.
 
