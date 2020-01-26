@@ -17,6 +17,7 @@ use Path::Tiny;
 use Dash::Renderer;
 use Dash::Config;
 use Dash::Exceptions::NoLayoutException;
+use Dash::Exceptions::PreventUpdate;
 use Dash::Backend::Mojolicious::App;
 use namespace::clean;
 
@@ -376,6 +377,13 @@ sub callback {
     return $self;
 }
 
+my $no_update;
+my $internal_no_update = bless(\$no_update, 'Dash::Internal::NoUpdate');
+
+sub no_update {
+    return $internal_no_update;
+}
+
 sub _process_callback_arguments {
     my $self = shift;
 
@@ -582,14 +590,25 @@ sub _update_component {
                 my @return_value  = $callback->{callback}(@callback_arguments);
                 my $props_updated = {};
                 my $index_output  = 0;
+                my $some_updated  = 0;     
                 for my $output ( @{ $callback->{'Output'} } ) {
-                    $props_updated->{ $output->{component_id} } =
-                      { $output->{component_property} => $return_value[$index_output] };
+                    if (!(Scalar::Util::blessed($output) && $output->isa('Dash::Internal::NoUpdate'))) {
+                        $props_updated->{ $output->{component_id} } =
+                            { $output->{component_property} => $return_value[$index_output] };
+                        $some_updated = 1;
+                    }
                     $index_output++;
                 }
-                return { response => $props_updated, multi => JSON::true };
+                if ($some_updated) {
+                    return { response => $props_updated, multi => JSON::true };
+                } else {
+                    Dash::Exceptions::PreventUpdate->throw;
+                }
             } elsif ( $output_type eq 'HASH' ) {
                 my $updated_value    = $callback->{callback}(@callback_arguments);
+                if (Scalar::Util::blessed($updated_value) && $updated_value->isa('Dash::Internal::NoUpdate')) {
+                    Dash::Exceptions::PreventUpdate->throw;
+                }
                 my $updated_property = ( split( /\./, $request->{output} ) )[-1];
                 my $props_updated    = { $updated_property => $updated_value };
                 return { response => { props => $props_updated } };
