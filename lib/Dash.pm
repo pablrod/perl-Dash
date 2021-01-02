@@ -456,7 +456,7 @@ sub _process_callback_arguments {
             $callback{State} = $_[$state_index];
         }
     } else {    # Named arguments
-                # TODO check keys Â¿Params::Validate or similar?
+                # TODO check keys ¿Params::Validate or similar?
         %callback = @_;
     }
 
