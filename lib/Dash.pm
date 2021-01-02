@@ -309,54 +309,60 @@ And it will start a server on port 8080 and open a browser to start using your a
 =cut
 
 has app_name => (
-    is => 'ro',
+    is      => 'ro',
     default => __PACKAGE__
 );
 
+has port => (
+    is      => 'ro',
+    default => 8080
+);
+
 has external_stylesheets => (
-    is => 'rw',
+    is      => 'rw',
     default => sub { [] }
 );
 
 has _layout => (
-    is => 'rw',
+    is      => 'rw',
     default => sub { {} }
 );
 
 has _callbacks => (
-    is => 'rw',
+    is      => 'rw',
     default => sub { {} }
 );
 
 has _rendered_scripts => (
-    is => 'rw',
+    is      => 'rw',
     default => ""
 );
 
 has _rendered_external_stylesheets => (
-    is => 'rw',
+    is      => 'rw',
     default => ""
 );
 
 has backend => (
-    is => 'rw',
-    default => sub { Dash::Backend::Mojolicious::App->new(dash_app => shift) }
+    is      => 'rw',
+    default => sub { Dash::Backend::Mojolicious::App->new( dash_app => shift ) }
 );
 
 has config => (
-    is => 'rw',
+    is      => 'rw',
     default => sub { Dash::Config->new() }
 );
 
 sub layout {
-    my $self = shift;
+    my $self   = shift;
     my $layout = shift;
-    if (defined $layout) {
+    if ( defined $layout ) {
         my $type = ref $layout;
-        if ($type eq 'CODE' || (Scalar::Util::blessed($layout) && $layout->isa('Dash::BaseComponent'))) { 
+        if ( $type eq 'CODE' || ( Scalar::Util::blessed($layout) && $layout->isa('Dash::BaseComponent') ) ) {
             $self->_layout($layout);
         } else {
-            Dash::Exceptions::NoLayoutException->throw('Layout must be a dash component or a function that returns a dash component');
+            Dash::Exceptions::NoLayoutException->throw(
+                'Layout must be a dash component or a function that returns a dash component');
         }
     } else {
         $layout = $self->_layout;
@@ -370,15 +376,15 @@ sub callback {
 
     # TODO check_callback
     # TODO Callback map
-    my $output = $callback{Output};
+    my $output      = $callback{Output};
     my $callback_id = $self->_create_callback_id($output);
-    my $callbacks = $self->_callbacks;
+    my $callbacks   = $self->_callbacks;
     $callbacks->{$callback_id} = \%callback;
     return $self;
 }
 
 my $no_update;
-my $internal_no_update = bless(\$no_update, 'Dash::Internal::NoUpdate');
+my $internal_no_update = bless( \$no_update, 'Dash::Internal::NoUpdate' );
 
 sub no_update {
     return $internal_no_update;
@@ -421,12 +427,15 @@ sub _process_callback_arguments {
                 } else {
                     die "Can't use empty arrayrefs as arguments";
                 }
-            } elsif ( $type eq 'SCALAR') {
-                die "Can't mix scalarref arguments with objects when not using named paremeters. Please use named parameters for all arguments or classes for all arguments";
-            } elsif ( $type eq 'HASH') {
-                die "Can't mix hashref arguments with objects when not using named parameters. Please use named parameters for all arguments or classes for all arguments";
-            } elsif ( $type eq '') {
-                die "Can't mix scalar arguments with objects when not using named parameters. Please use named parameters for all arguments or classes for all arguments";
+            } elsif ( $type eq 'SCALAR' ) {
+                die
+                  "Can't mix scalarref arguments with objects when not using named paremeters. Please use named parameters for all arguments or classes for all arguments";
+            } elsif ( $type eq 'HASH' ) {
+                die
+                  "Can't mix hashref arguments with objects when not using named parameters. Please use named parameters for all arguments or classes for all arguments";
+            } elsif ( $type eq '' ) {
+                die
+                  "Can't mix scalar arguments with objects when not using named parameters. Please use named parameters for all arguments or classes for all arguments";
             }
             $index++;
         }
@@ -443,22 +452,22 @@ sub _process_callback_arguments {
         $callback{Output}   = $_[$output_index];
         $callback{Inputs}   = $_[$input_index];
         $callback{callback} = $_[$callback_index];
-        if (defined $state_index) {
+        if ( defined $state_index ) {
             $callback{State} = $_[$state_index];
         }
     } else {    # Named arguments
-        # TODO check keys ¿Params::Validate or similar?
+                # TODO check keys ¿Params::Validate or similar?
         %callback = @_;
     }
 
     # Convert Output & input to hashrefs
-    for my $key (keys %callback) {
+    for my $key ( keys %callback ) {
         my $value = $callback{$key};
 
         if ( ref $value eq 'ARRAY' ) {
             my @hashes;
             for my $dependency (@$value) {
-                if (Scalar::Util::blessed $dependency) {
+                if ( Scalar::Util::blessed $dependency) {
                     my %dependency_hash = %$dependency;
                     push @hashes, \%dependency_hash;
                 } else {
@@ -476,11 +485,11 @@ sub _process_callback_arguments {
 }
 
 sub _create_callback_id {
-    my $self = shift;
+    my $self   = shift;
     my $output = shift;
 
-    if (ref $output eq 'ARRAY') {
-        return ".." . join("...", map {$_->{component_id} . "." . $_->{component_property}} @$output ). "..";
+    if ( ref $output eq 'ARRAY' ) {
+        return ".." . join( "...", map { $_->{component_id} . "." . $_->{component_property} } @$output ) . "..";
     }
 
     return $output->{component_id} . "." . $output->{component_property};
@@ -495,9 +504,9 @@ sub run_server {
     # Opening the browser before starting the daemon works because
     #  open_browser returns inmediately
     # TODO Open browser optional
-    if (not caller(1)) { 
-        Browser::Open::open_browser('http://127.0.0.1:8080');
-        $self->backend->start('daemon', '-l', 'http://*:8080');
+    if ( not caller(1) ) {
+        Browser::Open::open_browser( 'http://127.0.0.1:' . $self->port );
+        $self->backend->start( 'daemon', '-l', 'http://*:' . $self->port );
     }
     return $self->backend;
 }
@@ -509,16 +518,18 @@ sub _dependencies {
         my $rendered_callback = { clientside_function => JSON::null };
         my $states            = [];
         for my $state ( @{ $callback->{State} } ) {
-            my $rendered_state = { id       => $state->{component_id},
-                                   property => $state->{component_property}
+            my $rendered_state = {
+                id       => $state->{component_id},
+                property => $state->{component_property}
             };
             push @$states, $rendered_state;
         }
         $rendered_callback->{state} = $states;
         my $inputs = [];
         for my $input ( @{ $callback->{Inputs} } ) {
-            my $rendered_input = { id       => $input->{component_id},
-                                   property => $input->{component_property}
+            my $rendered_input = {
+                id       => $input->{component_id},
+                property => $input->{component_property}
             };
             push @$inputs, $rendered_input;
         }
@@ -559,7 +570,7 @@ sub _update_component {
                     my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
                     if ( $component_id eq $id && $component_property eq $property ) {
                         push @callback_arguments, $value;
-                        $callback_context->{inputs}{$id . "." . $property} = $value;
+                        $callback_context->{inputs}{ $id . "." . $property } = $value;
                         last;
                     }
                 }
@@ -570,17 +581,17 @@ sub _update_component {
                     my ( $id, $property, $value ) = @{$change_input}{qw(id property value)};
                     if ( $component_id eq $id && $component_property eq $property ) {
                         push @callback_arguments, $value;
-                        $callback_context->{states}{$id . "." . $property} = $value;
+                        $callback_context->{states}{ $id . "." . $property } = $value;
                         last;
                     }
                 }
             }
 
             $callback_context->{triggered} = [];
-            for my $triggered_input ( @{ $request->{changedPropIds} }) {
-                push @{$callback_context->{triggered}}, {
-                    prop_id => $triggered_input, 
-                    value => $callback_context->{inputs}{$triggered_input}
+            for my $triggered_input ( @{ $request->{changedPropIds} } ) {
+                push @{ $callback_context->{triggered} }, {
+                    prop_id => $triggered_input,
+                    value   => $callback_context->{inputs}{$triggered_input}
                 };
             }
             push @callback_arguments, $callback_context;
@@ -590,12 +601,12 @@ sub _update_component {
                 my @return_value  = $callback->{callback}(@callback_arguments);
                 my $props_updated = {};
                 my $index_output  = 0;
-                my $some_updated  = 0;     
+                my $some_updated  = 0;
                 for my $output ( @{ $callback->{'Output'} } ) {
-                    my $output_value = $return_value[$index_output++];
-                    if (!(Scalar::Util::blessed($output_value) && $output_value->isa('Dash::Internal::NoUpdate'))) {
+                    my $output_value = $return_value[ $index_output++ ];
+                    if ( !( Scalar::Util::blessed($output_value) && $output_value->isa('Dash::Internal::NoUpdate') ) ) {
                         $props_updated->{ $output->{component_id} } =
-                            { $output->{component_property} => $output_value };
+                          { $output->{component_property} => $output_value };
                         $some_updated = 1;
                     }
                 }
@@ -605,8 +616,8 @@ sub _update_component {
                     Dash::Exceptions::PreventUpdate->throw;
                 }
             } elsif ( $output_type eq 'HASH' ) {
-                my $updated_value    = $callback->{callback}(@callback_arguments);
-                if (Scalar::Util::blessed($updated_value) && $updated_value->isa('Dash::Internal::NoUpdate')) {
+                my $updated_value = $callback->{callback}(@callback_arguments);
+                if ( Scalar::Util::blessed($updated_value) && $updated_value->isa('Dash::Internal::NoUpdate') ) {
                     Dash::Exceptions::PreventUpdate->throw;
                 }
                 my $updated_property = ( split( /\./, $request->{output} ) )[-1];
@@ -626,11 +637,11 @@ sub _update_component {
 }
 
 sub _search_callback {
-    my $self             = shift;
-    my $output           = shift;
+    my $self   = shift;
+    my $output = shift;
 
     my $callbacks          = $self->_callbacks;
-    my @matching_callbacks = ($callbacks->{$output});
+    my @matching_callbacks = ( $callbacks->{$output} );
     return \@matching_callbacks;
 }
 
@@ -639,8 +650,8 @@ sub _rendered_stylesheets {
 }
 
 sub _render_external_stylesheets {
-    my $self = shift;
-    my $stylesheets = $self->external_stylesheets;
+    my $self                          = shift;
+    my $stylesheets                   = $self->external_stylesheets;
     my $rendered_external_stylesheets = "";
     for my $stylesheet (@$stylesheets) {
         $rendered_external_stylesheets .= '<link rel="stylesheet" href="' . $stylesheet . '">' . "\n";
@@ -649,44 +660,43 @@ sub _render_external_stylesheets {
 }
 
 sub _render_and_cache_external_stylesheets {
-    my $self = shift;
+    my $self        = shift;
     my $stylesheets = $self->_render_external_stylesheets();
     $self->_rendered_external_stylesheets($stylesheets);
 }
 
 sub _render_and_cache_scripts {
-    my $self = shift;
+    my $self    = shift;
     my $scripts = $self->_render_scripts();
     $self->_rendered_scripts($scripts);
 }
 
 sub _render_dash_config {
     my $self = shift;
-    my $json = JSON->new->utf8->allow_blessed->convert_blessed; 
-    return
-            '<script id="_dash-config" type="application/json">' . $json->encode($self->config) . '</script>';
+    my $json = JSON->new->utf8->allow_blessed->convert_blessed;
+    return '<script id="_dash-config" type="application/json">' . $json->encode( $self->config ) . '</script>';
 }
 
 sub _dash_renderer_js_dependencies {
     my $js_dist_dependencies = Dash::Renderer::_js_dist_dependencies();
-    my @js_deps = ();
+    my @js_deps              = ();
     for my $deps (@$js_dist_dependencies) {
-        my $external_url = $deps->{external_url};
+        my $external_url          = $deps->{external_url};
         my $relative_package_path = $deps->{relative_package_path};
-        my $namespace = $deps->{namespace};
-        my $dep_count = 0;
-        for my $dep (@{$relative_package_path->{prod}}) {
+        my $namespace             = $deps->{namespace};
+        my $dep_count             = 0;
+        for my $dep ( @{ $relative_package_path->{prod} } ) {
             my $js_dep = {
-                namespace => $namespace,
+                namespace             => $namespace,
                 relative_package_path => $dep,
-                dev_package_path => $relative_package_path->{dev}[$dep_count],
-                external_url => $external_url->{prod}[$dep_count]
-                };
+                dev_package_path      => $relative_package_path->{dev}[$dep_count],
+                external_url          => $external_url->{prod}[$dep_count]
+            };
             push @js_deps, $js_dep;
             $dep_count++;
         }
     }
-     \@js_deps;
+    \@js_deps;
 }
 
 sub _dash_renderer_js_deps {
@@ -710,45 +720,47 @@ sub _render_scripts {
     my $visitor;
     my $stack_depth_limit = 1000;
     $visitor = sub {
-        my $node = shift;
+        my $node        = shift;
         my $stack_depth = shift;
-        if ($stack_depth++ >= $stack_depth_limit) {
+        if ( $stack_depth++ >= $stack_depth_limit ) {
+
             # TODO warn user that layout is too deep
             return;
         }
         my $type = ref $node;
-        if ($type eq 'HASH') {
-            for my $key (keys %$node) {
-                $visitor->($node->{$key}, $stack_depth);
+        if ( $type eq 'HASH' ) {
+            for my $key ( keys %$node ) {
+                $visitor->( $node->{$key}, $stack_depth );
             }
-        } elsif ($type eq 'ARRAY') {
+        } elsif ( $type eq 'ARRAY' ) {
             for my $element (@$node) {
-                $visitor->($element, $stack_depth);
+                $visitor->( $element, $stack_depth );
             }
-        } elsif ( $type ne '') {
+        } elsif ( $type ne '' ) {
             my $node_dependencies = $node->_js_dist();
             push @$scripts_dependencies, @$node_dependencies if defined $node_dependencies;
-            if ($node->can('children')) {
-                $visitor->($node->children, $stack_depth);
+            if ( $node->can('children') ) {
+                $visitor->( $node->children, $stack_depth );
             }
         }
     };
 
-    $visitor->($layout, 0);
-   
+    $visitor->( $layout, 0 );
+
     my $rendered_scripts = "";
     $rendered_scripts .= $self->_render_dash_config();
-    push @$scripts_dependencies, @{$self->_dash_renderer_js_deps()};
+    push @$scripts_dependencies, @{ $self->_dash_renderer_js_deps() };
     my $filtered_resources = $self->_filter_resources($scripts_dependencies);
-    my %rendered = ();
+    my %rendered           = ();
     for my $dep (@$filtered_resources) {
         my $dynamic = $dep->{dynamic} // 0;
-        if (! $dynamic ) {
-            my $resource_path_part = join("/", $dep->{namespace}, $dep->{relative_package_path});
-            if (!$rendered{$resource_path_part}) {
-                $rendered_scripts .= '<script src="/' . join("/", '_dash-component-suites', $resource_path_part) . '"></script>' . "\n";
+        if ( !$dynamic ) {
+            my $resource_path_part = join( "/", $dep->{namespace}, $dep->{relative_package_path} );
+            if ( !$rendered{$resource_path_part} ) {
+                $rendered_scripts .=
+                  '<script src="/' . join( "/", '_dash-component-suites', $resource_path_part ) . '"></script>' . "\n";
                 $rendered{$resource_path_part} = 1;
-            } 
+            }
         }
     }
     $rendered_scripts .= $self->_render_dash_renderer_script();
@@ -757,33 +769,33 @@ sub _render_scripts {
 }
 
 sub _filter_resources {
-    my $self = shift;
-    my $resources = shift;
-    my %params = @_;
-    my $dev_bundles = $params{dev_bundles} // 0;
+    my $self          = shift;
+    my $resources     = shift;
+    my %params        = @_;
+    my $dev_bundles   = $params{dev_bundles} // 0;
     my $eager_loading = $params{eager_loading} // 0;
     my $serve_locally = $params{serve_locally} // 1;
 
     my $filtered_resources = [];
     for my $resource (@$resources) {
         my $filtered_resource = {};
-        my $dynamic = $resource->{dynamic};
-        if (defined $dynamic) {
+        my $dynamic           = $resource->{dynamic};
+        if ( defined $dynamic ) {
             $filtered_resource->{dynamic} = $dynamic;
         }
         my $async = $resource->{async};
-        if (defined $async) {
-            if (defined $dynamic) {
-                die "A resource can't have both dynamic and async: " + to_json($resource); 
+        if ( defined $async ) {
+            if ( defined $dynamic ) {
+                die "A resource can't have both dynamic and async: " + to_json($resource);
             }
             my $dynamic = 1;
-            if ($async eq 'lazy') {
-                $dynamic = 1; 
+            if ( $async eq 'lazy' ) {
+                $dynamic = 1;
             } else {
-                if ($async eq 'eager' && !$eager_loading) {
+                if ( $async eq 'eager' && !$eager_loading ) {
                     $dynamic = 1;
                 } else {
-                    if ($async && !$eager_loading) {
+                    if ( $async && !$eager_loading ) {
                         $dynamic = 1;
                     } else {
                         $dynamic = 0;
@@ -793,36 +805,40 @@ sub _filter_resources {
             $filtered_resource->{dynamic} = $dynamic;
         }
         my $namespace = $resource->{namespace};
-        if (defined $namespace) {
+        if ( defined $namespace ) {
             $filtered_resource->{namespace} = $namespace;
         }
         my $external_url = $resource->{external_url};
-        if (defined $external_url && ! $serve_locally) {
+        if ( defined $external_url && !$serve_locally ) {
             $filtered_resource->{external_url} = $external_url;
         } else {
             my $dev_package_path = $resource->{dev_package_path};
-            if (defined $dev_package_path && $dev_bundles) {
+            if ( defined $dev_package_path && $dev_bundles ) {
                 $filtered_resource->{relative_package_path} = $dev_package_path;
             } else {
                 my $relative_package_path = $resource->{relative_package_path};
-                if (defined $relative_package_path) {
+                if ( defined $relative_package_path ) {
                     $filtered_resource->{relative_package_path} = $relative_package_path;
                 } else {
                     my $absolute_path = $resource->{absolute_path};
-                    if (defined $absolute_path) {
+                    if ( defined $absolute_path ) {
                         $filtered_resource->{absolute_path} = $absolute_path;
                     } else {
                         my $asset_path = $resource->{asset_path};
-                        if (defined $asset_path) {
-                            my $stat_info = path($resource->{filepath})->stat;
+                        if ( defined $asset_path ) {
+                            my $stat_info = path( $resource->{filepath} )->stat;
                             $filtered_resource->{asset_path} = $asset_path;
-                            $filtered_resource->{ts} = $stat_info->mtime;
+                            $filtered_resource->{ts}         = $stat_info->mtime;
                         } else {
                             if ($serve_locally) {
-                                warn 'There is no local version of this resource. Please consider using external_scripts or external_stylesheets : ' + to_json($resource);
+                                warn
+                                  'There is no local version of this resource. Please consider using external_scripts or external_stylesheets : '
+                                  + to_json($resource);
                                 next;
                             } else {
-                                die 'There is no relative_package-path, absolute_path or external_url for this resource : ' + to_json($resource);
+                                die
+                                  'There is no relative_package-path, absolute_path or external_url for this resource : '
+                                  + to_json($resource);
                             }
                         }
                     }
@@ -836,15 +852,15 @@ sub _filter_resources {
 }
 
 sub _filename_from_file_with_fingerprint {
-    my $self = shift;
-    my $file = shift;
-    my @path_parts = split(/\//, $file);
-    my @name_parts = split(/\./, $path_parts[-1]);
+    my $self       = shift;
+    my $file       = shift;
+    my @path_parts = split( /\//, $file );
+    my @name_parts = split( /\./, $path_parts[-1] );
 
     # Check if the resource has a fingerprint
-    if ((scalar @name_parts) > 2 && $name_parts[1] =~ /^v[\w-]+m[0-9a-fA-F]+$/) {
-        my $original_name = join(".", $name_parts[0], @name_parts[2 .. (scalar @name_parts - 1)]);
-        $file = join("/", @path_parts[0 .. (scalar @path_parts - 2) ], $original_name);
+    if ( ( scalar @name_parts ) > 2 && $name_parts[1] =~ /^v[\w-]+m[0-9a-fA-F]+$/ ) {
+        my $original_name = join( ".", $name_parts[0], @name_parts[ 2 .. ( scalar @name_parts - 1 ) ] );
+        $file = join( "/", @path_parts[ 0 .. ( scalar @path_parts - 2 ) ], $original_name );
     }
 
     return $file;
