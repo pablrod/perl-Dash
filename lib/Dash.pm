@@ -313,6 +313,11 @@ has app_name => (
     default => __PACKAGE__
 );
 
+has port => (
+    is => 'ro',
+    default => 8080
+);
+
 has external_stylesheets => (
     is => 'rw',
     default => sub { [] }
@@ -496,8 +501,8 @@ sub run_server {
     #  open_browser returns inmediately
     # TODO Open browser optional
     if (not caller(1)) { 
-        Browser::Open::open_browser('http://127.0.0.1:8080');
-        $self->backend->start('daemon', '-l', 'http://*:8080');
+        Browser::Open::open_browser('http://127.0.0.1:' . $self->port);
+        $self->backend->start('daemon', '-l', 'http://*:' . $self->port);
     }
     return $self->backend;
 }
